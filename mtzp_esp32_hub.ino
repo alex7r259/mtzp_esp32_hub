@@ -137,7 +137,7 @@ bool mtzpWrite(uint16_t reg, uint16_t val) {
 WebServer server(80);
 
 /* ================= HTML UI ================= */
-const char MAIN_HTML[] PROGMEM = R"rawliteral(
+const char MAIN_HTML[] PROGMEM = R"MTZP_HTML(
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1456,7 +1456,7 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
     </script>
 </body>
 </html>
-)rawliteral";
+)MTZP_HTML";
 
 /* ================= API ================= */
 void handleRoot() {
