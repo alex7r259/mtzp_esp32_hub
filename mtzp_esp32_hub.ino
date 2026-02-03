@@ -153,56 +153,19 @@ summary{cursor:pointer}
 .menu-link{cursor:pointer;text-decoration:underline;color:#9bd1ff}
 .menu-link:hover{color:#cfe8ff}
 .menu-meta{font-size:12px;color:#aaa}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tab{padding:6px 10px;border-radius:6px;background:#2a2a2a;cursor:pointer}
+.tab.active{background:#0a84ff}
+.menu-value{margin-left:6px;font-weight:bold}
+.menu-edit{display:flex;gap:6px;align-items:center;margin-top:4px}
+.menu-edit input{flex:1}
 </style></head>
 <body>
 <h2>MTZP Web Panel</h2>
 <div class=card>
 <h3>Меню устройства</h3>
-<div>
-  <label><input type=radio name=menutarget value="read" checked> Применять к чтению</label>
-  <label><input type=radio name=menutarget value="write"> Применять к записи</label>
-</div>
+<div class=tabs id=menuTabs></div>
 <div id=menu></div>
-</div>
-<div class=card>
-<h3>Read register</h3>
-<label>Register</label>
-<select id=rreg></select>
-<label>Format</label>
-<select id=rformat>
-  <option value="DEC">DEC</option>
-  <option value="HEX">HEX</option>
-  <option value="OCT">OCT</option>
-  <option value="BIN">BIN</option>
-  <option value="SDC">SDC</option>
-  <option value="REL">REL</option>
-  <option value="SWT">SWT</option>
-</select>
-<label>Scale (decimal digits)</label>
-<input id=rscale type=number value="0" min="0" max="4">
-<button onclick=readReg()>Read</button>
-<pre id=rout></pre>
-</div>
-<div class=card>
-<h3>Write register</h3>
-<label>Register</label>
-<select id=wreg></select>
-<label>Format</label>
-<select id=wformat>
-  <option value="DEC">DEC</option>
-  <option value="HEX">HEX</option>
-  <option value="OCT">OCT</option>
-  <option value="BIN">BIN</option>
-  <option value="SDC">SDC</option>
-  <option value="REL">REL</option>
-  <option value="SWT">SWT</option>
-</select>
-<label>Scale (decimal digits)</label>
-<input id=wscale type=number value="0" min="0" max="4">
-<label>Value</label>
-<input id=wval placeholder="Value">
-<button onclick=writeReg()>Write</button>
-<pre id=wout></pre>
 </div>
 <script>
 const registerTable = [
@@ -1172,46 +1135,27 @@ const menuTree = [
   }
 ];
 
-function fillRegisters(selectEl){
-  registerTable.forEach(item => {
-    const opt=document.createElement('option');
-    opt.value=item.id;
-    opt.textContent=`${item.id} — ${item.name}`;
-    selectEl.appendChild(opt);
-  });
-}
-fillRegisters(rreg);
-fillRegisters(wreg);
-
-function applyRegisterDefaults(selectEl, formatEl, scaleEl){
-  const reg = Number(selectEl.value);
-  const meta = registerIndex.get(reg);
-  if (!meta) return;
-  formatEl.value = meta.format || 'DEC';
-  scaleEl.value = typeof meta.scale === 'number' ? meta.scale : 0;
-}
-
-rreg.addEventListener('change', () => applyRegisterDefaults(rreg, rformat, rscale));
-wreg.addEventListener('change', () => applyRegisterDefaults(wreg, wformat, wscale));
-applyRegisterDefaults(rreg, rformat, rscale);
-applyRegisterDefaults(wreg, wformat, wscale);
-
-function getMenuTarget(){
-  const selected = document.querySelector('input[name=menutarget]:checked');
-  return selected ? selected.value : 'read';
-}
-
-function selectRegister(regId){
-  const meta = registerIndex.get(regId);
-  if(!meta) return;
-  const target = getMenuTarget();
-  if(target === 'write'){
-    wreg.value = String(regId);
-    applyRegisterDefaults(wreg, wformat, wscale);
-  }else{
-    rreg.value = String(regId);
-    applyRegisterDefaults(rreg, rformat, rscale);
-  }
+function isEditableLabel(label){
+  const editableHints = [
+    'да/нет',
+    'Уставка',
+    'уставка',
+    'Порог',
+    'порог',
+    'Время',
+    'время',
+    'Номинал',
+    'номинал',
+    'Конфигурация',
+    'управление',
+    'Управление',
+    'Обновление',
+    'Сохранить',
+    'Загрузить',
+    'Юстировка',
+    'Обнуление'
+  ];
+  return editableHints.some(hint => label.includes(hint));
 }
 
 function renderMenuItem(item){
@@ -1232,7 +1176,6 @@ function renderMenuItem(item){
       const link = document.createElement('span');
       link.className = 'menu-link';
       link.textContent = item.label;
-      link.addEventListener('click', () => selectRegister(item.regId));
       line.appendChild(link);
       const meta = registerIndex.get(item.regId);
       if(meta){
@@ -1240,6 +1183,24 @@ function renderMenuItem(item){
         metaSpan.className = 'menu-meta';
         metaSpan.textContent = ` (рег. ${meta.id}, ${meta.format}, scale ${meta.scale})`;
         line.appendChild(metaSpan);
+      }
+      const valueSpan = document.createElement('span');
+      valueSpan.className = 'menu-value';
+      valueSpan.textContent = '...';
+      valueSpan.dataset.regId = String(item.regId);
+      line.appendChild(valueSpan);
+      if(isEditableLabel(item.label)){
+        const edit = document.createElement('div');
+        edit.className = 'menu-edit';
+        const input = document.createElement('input');
+        input.placeholder = 'Новое значение';
+        input.dataset.regId = String(item.regId);
+        const button = document.createElement('button');
+        button.textContent = 'Записать';
+        button.addEventListener('click', () => writeRegisterValue(item.regId, input.value));
+        edit.appendChild(input);
+        edit.appendChild(button);
+        line.appendChild(edit);
       }
     }else{
       line.textContent = item.label;
@@ -1250,9 +1211,29 @@ function renderMenuItem(item){
 }
 
 const menuRoot = document.getElementById('menu');
-menuTree.forEach(item => {
-  menuRoot.appendChild(renderMenuItem(item));
-});
+const menuTabs = document.getElementById('menuTabs');
+let activeMenuIndex = 0;
+
+function renderTabs(){
+  menuTabs.innerHTML = '';
+  menuTree.forEach((item, index) => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (index === activeMenuIndex ? ' active' : '');
+    tab.textContent = item.label;
+    tab.addEventListener('click', () => {
+      activeMenuIndex = index;
+      renderMenuPage();
+    });
+    menuTabs.appendChild(tab);
+  });
+}
+
+function renderMenuPage(){
+  renderTabs();
+  menuRoot.innerHTML = '';
+  menuRoot.appendChild(renderMenuItem(menuTree[activeMenuIndex]));
+  refreshVisibleValues();
+}
 
 function formatValue(raw, format, scale){
   const scaleFactor = Math.pow(10, scale);
@@ -1275,24 +1256,39 @@ function parseValue(text, format, scale){
   return Math.round(num * scaleFactor);
 }
 
-function readReg(){
- const reg=rreg.value;
- const format=rformat.value;
- const scale=parseInt(rscale.value||'0',10);
- fetch(`/api/read?reg=${reg}`)
- .then(r=>r.json()).then(d=>{
-   const formatted = formatValue(d.value, format, scale);
-   rout.innerText=JSON.stringify({...d, formatted},null,2);
- });
+function writeRegisterValue(regId, valueText){
+  const meta = registerIndex.get(regId);
+  if(!meta) return;
+  const raw = parseValue(valueText, meta.format || 'DEC', meta.scale || 0);
+  fetch(`/api/write?reg=${regId}&val=${raw}`)
+    .then(r=>r.json())
+    .then(() => refreshVisibleValues());
 }
-function writeReg(){
- const reg=wreg.value;
- const format=wformat.value;
- const scale=parseInt(wscale.value||'0',10);
- const raw = parseValue(wval.value, format, scale);
- fetch(`/api/write?reg=${reg}&val=${raw}`)
- .then(r=>r.json()).then(d=>wout.innerText=JSON.stringify(d,null,2));
+
+function getVisibleRegIds(){
+  const ids = new Set();
+  menuRoot.querySelectorAll('[data-reg-id]').forEach(el => {
+    ids.add(Number(el.dataset.regId));
+  });
+  return Array.from(ids);
 }
+
+function refreshVisibleValues(){
+  const ids = getVisibleRegIds();
+  ids.forEach(regId => {
+    fetch(`/api/read?reg=${regId}`)
+      .then(r=>r.json())
+      .then(d => {
+        const meta = registerIndex.get(regId);
+        const formatted = meta ? formatValue(d.value, meta.format || 'DEC', meta.scale || 0) : d.value;
+        menuRoot.querySelectorAll(`.menu-value[data-reg-id="${regId}"]`)
+          .forEach(span => span.textContent = formatted);
+      });
+  });
+}
+
+renderMenuPage();
+setInterval(refreshVisibleValues, 2000);
 </script>
 </body></html>
 )rawliteral";
