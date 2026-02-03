@@ -142,1360 +142,720 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Панель управления МТЗП-1200</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МТЗП-2T | Панель управления</title>
     <style>
+        :root {
+            --primary: #2196f3;
+            --primary-dark: #1976d2;
+            --secondary: #03a9f4;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --dark: #1a237e;
+            --light: #e3f2fd;
+            --gray: #f5f5f5;
+            --dark-gray: #424242;
+            --text: #212121;
+            --text-light: #757575;
+            --border: #e0e0e0;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
         }
-        
+
+        /* Header */
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px 15px 0 0;
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            color: white;
             padding: 25px 30px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 3px solid #4CAF50;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .header h1 {
-            color: #2c3e50;
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            opacity: 0.1;
+        }
+
+        .header-content h1 {
             font-size: 28px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            font-weight: 300;
+            margin-bottom: 5px;
         }
-        
-        .header h1 i {
-            color: #4CAF50;
-            font-size: 32px;
+
+        .header-content .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
         }
-        
-        .status-indicator {
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .connection-status {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #f8f9fa;
+            background: rgba(255,255,255,0.1);
             padding: 10px 20px;
-            border-radius: 50px;
-            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
         }
-        
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            background: #4CAF50;
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
+            background: var(--success);
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
         }
-        
-        .nav-tabs {
-            background: rgba(255, 255, 255, 0.95);
+
+        /* Main Layout */
+        .main-layout {
             display: flex;
-            gap: 5px;
-            padding: 15px 30px;
-            border-bottom: 1px solid #dee2e6;
-            overflow-x: auto;
-            scrollbar-width: thin;
+            min-height: 800px;
         }
-        
-        .nav-tab {
-            padding: 12px 25px;
-            background: #f8f9fa;
-            border: 2px solid transparent;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #495057;
-            transition: all 0.3s ease;
-            white-space: nowrap;
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--gray);
+            border-right: 1px solid var(--border);
+            padding: 25px 0;
+        }
+
+        .nav-section {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .nav-section h3 {
+            color: var(--primary-dark);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
-        .nav-tab:hover {
-            background: #e9ecef;
+
+        .nav-section h3 i {
+            font-size: 16px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin: 5px 0;
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            gap: 12px;
+        }
+
+        .nav-item:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .nav-item i {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .quick-actions {
+            padding: 0 20px;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
             transform: translateY(-2px);
         }
-        
-        .nav-tab.active {
-            background: #4CAF50;
+
+        .action-btn.primary {
+            background: var(--primary);
+            border-color: var(--primary);
             color: white;
-            border-color: #45a049;
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
         }
-        
-        .content {
-            background: rgba(255, 255, 255, 0.98);
-            border-radius: 0 0 15px 15px;
+
+        .action-btn.primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
             padding: 30px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-            min-height: 600px;
+            background: white;
         }
-        
-        .page {
-            display: none;
-            animation: fadeIn 0.5s ease;
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
         }
-        
-        .page.active {
-            display: block;
+
+        .content-header h2 {
+            color: var(--primary-dark);
+            font-size: 24px;
+            font-weight: 600;
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--light);
+            border: none;
+            border-radius: 10px;
+            color: var(--primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-        
-        .card-grid {
+
+        .refresh-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Register Cards */
+        .register-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
             margin-top: 20px;
         }
-        
-        .card {
+
+        .register-card {
             background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e0e0e0;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .card:hover {
+
+        .register-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: var(--primary);
         }
-        
+
+        .register-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--primary);
+        }
+
         .card-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
+            align-items: flex-start;
+            margin-bottom: 15px;
         }
-        
-        .card-title {
-            font-size: 18px;
-            color: #2c3e50;
+
+        .register-name {
+            font-size: 16px;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            color: var(--text);
+            line-height: 1.4;
         }
-        
-        .card-title i {
-            color: #4CAF50;
+
+        .register-id {
+            background: var(--light);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
         }
-        
-        .parameter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+
+        .value-display {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            text-align: center;
+            padding: 20px;
+            margin: 10px 0;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            border: 2px solid var(--border);
         }
-        
-        .parameter {
+
+        .unit {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-left: 5px;
+        }
+
+        .card-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            transition: background 0.3s ease;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
         }
-        
-        .parameter:hover {
-            background: #e9ecef;
-        }
-        
-        .parameter-label {
-            font-weight: 500;
-            color: #495057;
-            flex: 1;
-        }
-        
-        .parameter-value {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 18px;
-            min-width: 120px;
-            text-align: right;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .unit {
-            font-size: 14px;
-            color: #6c757d;
-            margin-left: 5px;
-            font-weight: normal;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-        
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-edit {
-            padding: 6px 12px;
-            background: #2196F3;
-            color: white;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.3s ease;
-        }
-        
-        .btn-edit:hover {
-            background: #0b7dda;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 30px;
+
+        .format-badge {
+            background: var(--gray);
+            color: var(--text-light);
+            padding: 4px 10px;
             border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: modalSlide 0.3s ease;
+            font-size: 12px;
         }
-        
-        @keyframes modalSlide {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+
+        .edit-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
         }
-        
-        .modal-header {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
+
+        .edit-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
         }
-        
-        .modal-title {
-            font-size: 20px;
-            color: #2c3e50;
+
+        .edit-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .edit-btn {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .edit-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Alerts and Status */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            color: #495057;
-            font-weight: 500;
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: #4CAF50;
-        }
-        
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #dee2e6;
-            color: #6c757d;
-            font-size: 14px;
-        }
-        
-        .refresh-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            background: #4CAF50;
-            color: white;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            z-index: 100;
-        }
-        
-        .refresh-btn:hover {
-            transform: rotate(180deg) scale(1.1);
-            background: #45a049;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            background: #4CAF50;
-            color: white;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            display: none;
-            z-index: 1000;
             animation: slideIn 0.3s ease;
         }
-        
+
         @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
+            from { transform: translateX(-20px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+
+        .alert.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
         }
-        
-        .table th, .table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #dee2e6;
+
+        .alert.warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left: 4px solid #ff9800;
         }
-        
-        .table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
+
+        .alert.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #f44336;
         }
-        
-        .table tr:hover {
-            background: #f8f9fa;
+
+        /* Loading Animation */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
-        
-        .search-box {
-            margin-bottom: 20px;
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
-        
-        .search-input {
-            width: 100%;
-            padding: 12px 20px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: 16px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%236c757d" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>') no-repeat 15px center;
-            background-size: 20px;
-            padding-left: 45px;
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .register-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
         }
-        
+
         @media (max-width: 768px) {
-            .header {
+            .main-layout {
                 flex-direction: column;
-                gap: 15px;
-                text-align: center;
             }
             
-            .nav-tabs {
-                padding: 10px;
-            }
-            
-            .nav-tab {
-                padding: 10px 15px;
-                font-size: 14px;
-            }
-            
-            .content {
+            .sidebar {
+                width: 100%;
                 padding: 20px;
             }
             
-            .card-grid {
+            .register-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        /* Value indicators */
+        .value-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .value-normal { background: #e8f5e9; color: #2e7d32; }
+        .value-warning { background: #fff3e0; color: #f57c00; }
+        .value-critical { background: #ffebee; color: #c62828; }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <!-- Заголовок -->
+        <!-- Header -->
         <div class="header">
-            <h1>
-                <i class="fas fa-bolt"></i>
-                Панель управления МТЗП-1200
-            </h1>
-            <div class="status-indicator">
-                <div class="status-dot"></div>
-                <span>Устройство подключено</span>
+            <div class="header-content">
+                <h1><i class="fas fa-bolt"></i> МТЗП-2T Контроллер</h1>
+                <div class="subtitle">Панель управления защитными устройствами</div>
+                <div class="status-badge">
+                    <i class="fas fa-microchip"></i> Адрес устройства: 0x01
+                </div>
+            </div>
+            <div class="connection-status">
+                <div class="status-indicator"></div>
+                <span>Подключено к устройству</span>
             </div>
         </div>
-        
-        <!-- Навигация -->
-        <div class="nav-tabs">
-            <div class="nav-tab active" data-page="dashboard">
-                <i class="fas fa-tachometer-alt"></i>
-                Текущие параметры
-            </div>
-            <div class="nav-tab" data-page="protections">
-                <i class="fas fa-shield-alt"></i>
-                Уставки защит
-            </div>
-            <div class="nav-tab" data-page="signals">
-                <i class="fas fa-bell"></i>
-                Контроль сигналов
-            </div>
-            <div class="nav-tab" data-page="settings">
-                <i class="fas fa-cog"></i>
-                Настройки
-            </div>
-            <div class="nav-tab" data-page="logs">
-                <i class="fas fa-clipboard-list"></i>
-                Журнал событий
-            </div>
-            <div class="nav-tab" data-page="info">
-                <i class="fas fa-info-circle"></i>
-                Информация
-            </div>
-        </div>
-        
-        <!-- Контент -->
-        <div class="content">
-            <!-- Главная страница - Текущие параметры -->
-            <div class="page active" id="dashboard">
-                <h2><i class="fas fa-tachometer-alt"></i> Текущие параметры системы</h2>
-                <p class="subtitle">Мониторинг в реальном времени</p>
-                
-                <div class="card-grid">
-                    <!-- Фазные токи -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-bolt"></i>
-                                Фазные токи
-                            </div>
-                            <div class="last-update">Обновлено: <span class="time">--:--:--</span></div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Фаза A</span>
-                                <span class="parameter-value" data-reg="41">0<span class="unit">А</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Фаза B</span>
-                                <span class="parameter-value" data-reg="42">0<span class="unit">А</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Фаза C</span>
-                                <span class="parameter-value" data-reg="43">0<span class="unit">А</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Максимальный ток</span>
-                                <span class="parameter-value" data-reg="44">0<span class="unit">А</span></span>
-                            </div>
-                        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar Navigation -->
+            <div class="sidebar">
+                <div class="nav-section">
+                    <h3><i class="fas fa-sliders-h"></i> Основные разделы</h3>
+                    <div class="nav-item active" data-tab="dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Панель приборов</span>
                     </div>
-                    
-                    <!-- Фазные напряжения -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-charging-station"></i>
-                                Фазные напряжения
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Фаза A</span>
-                                <span class="parameter-value" data-reg="33">0<span class="unit">В</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Фаза B</span>
-                                <span class="parameter-value" data-reg="34">0<span class="unit">В</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Фаза C</span>
-                                <span class="parameter-value" data-reg="35">0<span class="unit">В</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Линейное U</span>
-                                <span class="parameter-value" data-reg="64">0<span class="unit">В</span></span>
-                            </div>
-                        </div>
+                    <div class="nav-item" data-tab="protection">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Защиты</span>
                     </div>
-                    
-                    <!-- Мощность и энергия -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-chart-line"></i>
-                                Мощность и энергия
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Активная мощность</span>
-                                <span class="parameter-value" data-reg="57">0<span class="unit">кВт</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Полная мощность</span>
-                                <span class="parameter-value" data-reg="58">0<span class="unit">кВА</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Коэф. мощности</span>
-                                <span class="parameter-value" data-reg="59">0.00</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Активная энергия</span>
-                                <span class="parameter-value" data-reg="80">0<span class="unit">кВт·ч</span></span>
-                            </div>
-                        </div>
+                    <div class="nav-item" data-tab="measurements">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Измерения</span>
                     </div>
-                    
-                    <!-- Изоляция и температура -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-thermometer-half"></i>
-                                Состояние системы
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Температура</span>
-                                <span class="parameter-value" data-reg="32">0<span class="unit">°C</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Сопр. изоляции (мин)</span>
-                                <span class="parameter-value" data-reg="52">0<span class="unit">кОм</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Оперативное питание</span>
-                                <span class="parameter-value" data-reg="63">0<span class="unit">В</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Ток нуля</span>
-                                <span class="parameter-value" data-reg="61">0<span class="unit">мА</span></span>
-                            </div>
-                        </div>
+                    <div class="nav-item" data-tab="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Настройки</span>
                     </div>
-                    
-                    <!-- Статус защиты -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-shield-alt"></i>
-                                Статус защиты
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Аварии</span>
-                                <span class="parameter-value" data-reg="28">0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Неисправности</span>
-                                <span class="parameter-value" data-reg="30">0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Реле статус</span>
-                                <span class="parameter-value" data-reg="23">0x0</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="showProtections()">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                Детали защиты
-                            </button>
-                        </div>
+                    <div class="nav-item" data-tab="events">
+                        <i class="fas fa-history"></i>
+                        <span>Журнал событий</span>
                     </div>
-                    
-                    <!-- Время наработки -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-clock"></i>
-                                Время наработки
-                            </div>
+                    <div class="nav-item" data-tab="info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Информация</span>
+                    </div>
+                    <div class="nav-item" data-tab="all">
+                        <i class="fas fa-list"></i>
+                        <span>Все параметры</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <h3><i class="fas fa-bolt"></i> Быстрые действия</h3>
+                    <button class="action-btn" id="btn-refresh">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Обновить данные</span>
+                    </button>
+                    <button class="action-btn" id="btn-save">
+                        <i class="fas fa-save"></i>
+                        <span>Сохранить настройки</span>
+                    </button>
+                    <button class="action-btn" id="btn-reset">
+                        <i class="fas fa-undo"></i>
+                        <span>Сброс устройства</span>
+                    </button>
+                    <button class="action-btn" id="btn-import">
+                        <i class="fas fa-upload"></i>
+                        <span>Импорт настроек</span>
+                    </button>
+                    <button class="action-btn primary" id="btn-export">
+                        <i class="fas fa-download"></i>
+                        <span>Экспорт настроек</span>
+                    </button>
+                    <input type="file" id="import-file" accept="application/json" style="display:none" />
+                </div>
+
+                <div class="nav-section">
+                    <h3><i class="fas fa-chart-bar"></i> Статистика</h3>
+                    <div style="padding: 10px; background: white; border-radius: 10px; margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: var(--text-light);">Время работы:</span>
+                            <span style="font-weight: 600;" id="uptime">--:--:--</span>
                         </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">КА (дни:часы)</span>
-                                <span class="parameter-value" data-reg="93">0:0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">КА (минуты:секунды)</span>
-                                <span class="parameter-value" data-reg="92">0:0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">МТЗП (дни:часы)</span>
-                                <span class="parameter-value" data-reg="97">0:0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">МТЗП (минуты:секунды)</span>
-                                <span class="parameter-value" data-reg="96">0:0</span>
-                            </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: var(--text-light);">Аварии:</span>
+                            <span class="value-critical" id="alarm-count">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-light);">Температура:</span>
+                            <span style="font-weight: 600;" id="temperature">--°C</span>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Уставки защит -->
-            <div class="page" id="protections">
-                <h2><i class="fas fa-shield-alt"></i> Уставки защит</h2>
-                <p class="subtitle">Настройка параметров защитных функций</p>
-                
-                <div class="search-box">
-                    <input type="text" class="search-input" placeholder="Поиск защит..." id="searchProtections">
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Content Header -->
+                <div class="content-header">
+                    <h2 id="page-title">Панель приборов</h2>
+                    <button class="refresh-btn" id="refresh-all">
+                        <i class="fas fa-redo"></i>
+                        <span>Обновить все</span>
+                    </button>
                 </div>
-                
-                <div class="card-grid">
-                    <!-- МТЗ1 -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-bolt"></i>
-                                МТЗ-1
-                            </div>
-                            <button class="btn-edit" onclick="editProtection(115)">
-                                <i class="fas fa-edit"></i> Настроить
-                            </button>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Состояние</span>
-                                <span class="parameter-value" data-reg="115">Выкл</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Уставка тока</span>
-                                <span class="parameter-value" data-reg="117">0<span class="unit">А</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Задержка</span>
-                                <span class="parameter-value" data-reg="118">0<span class="unit">мс</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- МТЗ2 -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-bolt"></i>
-                                МТЗ-2
-                            </div>
-                            <button class="btn-edit" onclick="editProtection(122)">
-                                <i class="fas fa-edit"></i> Настроить
-                            </button>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Состояние</span>
-                                <span class="parameter-value" data-reg="122">Выкл</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Уставка тока</span>
-                                <span class="parameter-value" data-reg="124">0<span class="unit">А</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Задержка</span>
-                                <span class="parameter-value" data-reg="125">0<span class="unit">мс</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- БКИ -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-leaf"></i>
-                                БКИ
-                            </div>
-                            <button class="btn-edit" onclick="editProtection(159)">
-                                <i class="fas fa-edit"></i> Настроить
-                            </button>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Состояние</span>
-                                <span class="parameter-value" data-reg="159">Выкл</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Уставка R</span>
-                                <span class="parameter-value" data-reg="161">0<span class="unit">кОм</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Задержка</span>
-                                <span class="parameter-value" data-reg="162">0<span class="unit">мс</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- НЗЗ -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-sun"></i>
-                                НЗЗ
-                            </div>
-                            <button class="btn-edit" onclick="editProtection(164)">
-                                <i class="fas fa-edit"></i> Настроить
-                            </button>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Состояние</span>
-                                <span class="parameter-value" data-reg="164">Выкл</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Уставка I0</span>
-                                <span class="parameter-value" data-reg="166">0<span class="unit">мА</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Задержка</span>
-                                <span class="parameter-value" data-reg="168">0<span class="unit">мс</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- ЗММН -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-chart-line"></i>
-                                ЗММН
-                            </div>
-                            <button class="btn-edit" onclick="editProtection(141)">
-                                <i class="fas fa-edit"></i> Настроить
-                            </button>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Состояние</span>
-                                <span class="parameter-value" data-reg="141">Выкл</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">U макс</span>
-                                <span class="parameter-value" data-reg="143">0<span class="unit">В</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">U мин</span>
-                                <span class="parameter-value" data-reg="145">0<span class="unit">В</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- АПВ/АВР -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-redo"></i>
-                                АПВ/АВР
-                            </div>
-                            <button class="btn-edit" onclick="editProtection(205)">
-                                <i class="fas fa-edit"></i> Настроить
-                            </button>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">АПВ</span>
-                                <span class="parameter-value" data-reg="205">Выкл</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">АВР</span>
-                                <span class="parameter-value" data-reg="210">Выкл</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="toggleAPV()">
-                                <i class="fas fa-power-off"></i>
-                                Вкл/Выкл АПВ
-                            </button>
-                        </div>
-                    </div>
+
+                <!-- Alerts Area -->
+                <div id="alerts-container"></div>
+
+                <!-- Content will be loaded here -->
+                <div id="content-area">
+                    <!-- Dashboard will be loaded here by JavaScript -->
                 </div>
             </div>
-            
-            <!-- Контроль сигналов -->
-            <div class="page" id="signals">
-                <h2><i class="fas fa-bell"></i> Контроль сигналов</h2>
-                <p class="subtitle">Мониторинг входов и выходов системы</p>
-                
-                <div class="card-grid">
-                    <!-- Релейные выходы -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-plug"></i>
-                                Релейные выходы
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">К1 (Включение КА)</span>
-                                <span class="parameter-value" data-reg="23" data-bit="0">Выкл</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">К3 (Отключение КА)</span>
-                                <span class="parameter-value" data-reg="23" data-bit="2">Выкл</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">К8 (Авария)</span>
-                                <span class="parameter-value" data-reg="23" data-bit="7">Выкл</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="showRelaysDetails()">
-                                <i class="fas fa-list"></i>
-                                Все реле
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Внешние входы -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-sign-in-alt"></i>
-                                Внешние входы
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">ПДУ1</span>
-                                <span class="parameter-value" data-reg="24" data-bit="0">Нет</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">ПДУ2</span>
-                                <span class="parameter-value" data-reg="24" data-bit="3">Нет</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">ЛЗШ</span>
-                                <span class="parameter-value" data-reg="25" data-bit="3">Нет</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="showInputsDetails()">
-                                <i class="fas fa-list"></i>
-                                Все входы
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Внутренние входы -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-microchip"></i>
-                                Внутренние входы
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">РПО</span>
-                                <span class="parameter-value" data-reg="26" data-bit="0">Нет</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">РПВ</span>
-                                <span class="parameter-value" data-reg="26" data-bit="1">Нет</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Контроль БП</span>
-                                <span class="parameter-value" data-reg="26" data-bit="2">Нет</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Статус аварий -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                Статус аварий
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Активные аварии</span>
-                                <span class="parameter-value" data-reg="28">0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Активные неиспр.</span>
-                                <span class="parameter-value" data-reg="30">0</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="showAlarmsDetails()">
-                                <i class="fas fa-search"></i>
-                                Детали
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Настройки -->
-            <div class="page" id="settings">
-                <h2><i class="fas fa-cog"></i> Настройки системы</h2>
-                <p class="subtitle">Конфигурация параметров устройства</p>
-                
-                <div class="card-grid">
-                    <!-- Общие настройки -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-sliders-h"></i>
-                                Общие настройки
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Обновление данных</span>
-                                <span class="parameter-value" data-reg="252">2000<span class="unit">мс</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Пакетов в секунду</span>
-                                <span class="parameter-value" data-reg="6">10</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Таймаут RS485</span>
-                                <span class="parameter-value" data-reg="3">300<span class="unit">мс</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- RS485 -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-network-wired"></i>
-                                Интерфейс RS485
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Адрес устройства</span>
-                                <span class="parameter-value" data-reg="1">1</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Скорость</span>
-                                <span class="parameter-value" data-reg="2">19200<span class="unit">бод</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Протокол</span>
-                                <span class="parameter-value" data-reg="5">SLIP</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Управление -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-gamepad"></i>
-                                Управление
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Режим управления</span>
-                                <span class="parameter-value" data-reg="213">Авто</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Время МПУ</span>
-                                <span class="parameter-value" data-reg="218">100<span class="unit">мс</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Время STOP</span>
-                                <span class="parameter-value" data-reg="219">500<span class="unit">мс</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- КА управление -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-power-off"></i>
-                                Управление КА
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Время реле ОТКЛ</span>
-                                <span class="parameter-value" data-reg="188">50<span class="unit">мс</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Время реле ВКЛ</span>
-                                <span class="parameter-value" data-reg="189">50<span class="unit">мс</span></span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Время ГОТОВ</span>
-                                <span class="parameter-value" data-reg="190">1000<span class="unit">мс</span></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Действия -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-tools"></i>
-                                Действия
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <button class="btn btn-primary" onclick="saveSettings()">
-                                <i class="fas fa-save"></i>
-                                Сохранить настройки
-                            </button>
-                            <button class="btn btn-secondary" onclick="loadFactorySettings()">
-                                <i class="fas fa-undo"></i>
-                                Заводские настройки
-                            </button>
-                            <button class="btn btn-secondary" onclick="calibrateSensors()">
-                                <i class="fas fa-ruler"></i>
-                                Юстировка
-                            </button>
-                            <button class="btn btn-secondary" onclick="resetCounters()">
-                                <i class="fas fa-trash-alt"></i>
-                                Обнулить счётчики
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Пароль -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-lock"></i>
-                                Безопасность
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Пароль</span>
-                                <span class="parameter-value">*****</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="changePassword()">
-                                <i class="fas fa-key"></i>
-                                Изменить пароль
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Журнал событий -->
-            <div class="page" id="logs">
-                <h2><i class="fas fa-clipboard-list"></i> Журнал событий</h2>
-                <p class="subtitle">История работы системы</p>
-                
-                <div class="card-grid">
-                    <!-- Статистика -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-chart-bar"></i>
-                                Статистика
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Всего аварий</span>
-                                <span class="parameter-value" data-reg="100">0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Всего неисправностей</span>
-                                <span class="parameter-value" data-reg="102">0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Коммутаций КА</span>
-                                <span class="parameter-value" data-reg="106">0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Вкл/Откл питания</span>
-                                <span class="parameter-value" data-reg="108">0</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Последние события -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-history"></i>
-                                Последние события
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Последняя авария</span>
-                                <span class="parameter-value" data-reg="101">Нет</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Последняя неисправность</span>
-                                <span class="parameter-value" data-reg="103">Нет</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="showLogDetails('alarms')">
-                                <i class="fas fa-list"></i>
-                                Аварии
-                            </button>
-                            <button class="btn btn-primary" onclick="showLogDetails('faults')">
-                                <i class="fas fa-list"></i>
-                                Неисправности
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Управление журналом -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-database"></i>
-                                Управление журналом
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <button class="btn btn-primary" onclick="clearLogs()">
-                                <i class="fas fa-trash"></i>
-                                Очистить журналы
-                            </button>
-                            <button class="btn btn-secondary" onclick="exportLogs()">
-                                <i class="fas fa-download"></i>
-                                Экспорт данных
-                            </button>
-                            <div class="parameter">
-                                <span class="parameter-label">Запись мощности</span>
-                                <span class="parameter-value" data-reg="114">60<span class="unit">сек</span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Информация -->
-            <div class="page" id="info">
-                <h2><i class="fas fa-info-circle"></i> Информация об изделии</h2>
-                <p class="subtitle">Технические данные устройства</p>
-                
-                <div class="card-grid">
-                    <!-- Информация об устройстве -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-microchip"></i>
-                                Устройство
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Тип блока</span>
-                                <span class="parameter-value" data-reg="10">МТЗП-2T</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Серийный номер</span>
-                                <span class="parameter-value" data-reg="10">---</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Месяц выпуска</span>
-                                <span class="parameter-value" data-reg="11">---</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Версия ПО</span>
-                                <span class="parameter-value" data-reg="11">---</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Время и дата -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-clock"></i>
-                                Время и дата
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Время</span>
-                                <span class="parameter-value" data-reg="17">--:--:--</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Дата</span>
-                                <span class="parameter-value" data-reg="20">--.--.----</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="syncTime()">
-                                <i class="fas fa-sync"></i>
-                                Синхронизировать время
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Диагностика -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-stethoscope"></i>
-                                Диагностика
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">Циклов main</span>
-                                <span class="parameter-value" data-reg="13">0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Циклов АЦП</span>
-                                <span class="parameter-value" data-reg="14">0</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Циклов Input</span>
-                                <span class="parameter-value" data-reg="15">0</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="runDiagnostics()">
-                                <i class="fas fa-play"></i>
-                                Запустить диагностику
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Сеть -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fas fa-wifi"></i>
-                                Сеть
-                            </div>
-                        </div>
-                        <div class="parameter-group">
-                            <div class="parameter">
-                                <span class="parameter-label">WiFi точка доступа</span>
-                                <span class="parameter-value">MTZP</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">IP адрес</span>
-                                <span class="parameter-value">192.168.4.1</span>
-                            </div>
-                            <div class="parameter">
-                                <span class="parameter-label">Версия WebUI</span>
-                                <span class="parameter-value">2.0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Футер -->
-        <div class="footer">
-            <p>МТЗП-1200 Web Interface v2.0 • Обновлено: <span id="lastUpdateTime">--:--:--</span></p>
         </div>
     </div>
-    
-    <!-- Модальное окно редактирования -->
-    <div class="modal" id="editModal">
-        <div class="modal-content">
+
+    <!-- Modal for detailed view -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
             <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle">
-                    <i class="fas fa-edit"></i>
-                    Редактирование параметра
-                </h3>
+                <h3 id="modal-title">Детальная информация</h3>
+                <button class="close-btn" id="modal-close">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label" id="paramName">Параметр</label>
-                    <input type="text" class="form-input" id="paramValue" placeholder="Введите значение">
-                    <div class="form-help" id="paramHelp">Единицы измерения: --</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Текущее значение</label>
-                    <div class="current-value" id="currentValue">--</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal()">
-                    <i class="fas fa-times"></i>
-                    Отмена
-                </button>
-                <button class="btn btn-primary" onclick="saveParam()">
-                    <i class="fas fa-save"></i>
-                    Сохранить
-                </button>
+            <div class="modal-body" id="modal-content">
+                <!-- Modal content will be loaded here -->
             </div>
         </div>
-    </div>
-    
-    <!-- Кнопка обновления -->
-    <button class="refresh-btn" onclick="refreshAll()">
-        <i class="fas fa-sync-alt"></i>
-    </button>
-    
-    <!-- Уведомление -->
-    <div class="notification" id="notification">
-        <i class="fas fa-check-circle"></i>
-        <span id="notificationText">Действие выполнено успешно</span>
     </div>
 
     <script>
-        // Регистры и их метаданные
+        // Register data structure
 		const registerTable = [
-		{"id":0,"name":"Регистр команд","format":"DEC","scale":0},
+{"id":0,"name":"Регистр команд","format":"DEC","scale":0},
 		{"id":1,"name":"RS485 Адрес","format":"HEX","scale":0},
 		{"id":2,"name":"RS485 Скорость, kbps","format":"DEC","scale":1},
 		{"id":3,"name":"RS485 Таймаут, мсек","format":"DEC","scale":0},
@@ -1773,372 +1133,509 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
   {"id":275,"name":"Параметров FRAM","format":"DEC","scale":0},
   {"id":276,"name":"Параметров всего","format":"DEC","scale":0}
         ];
-        
+
         const registerIndex = new Map(registerTable.map(item => [item.id, item]));
-        
-        // Глобальные переменные
-        let currentPage = 'dashboard';
-        let currentEditReg = null;
-        let autoRefresh = true;
-        
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            // Инициализация навигации
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const page = this.dataset.page;
-                    switchPage(page);
-                });
-            });
-            
-            // Обновление времени
-            updateTime();
-            setInterval(updateTime, 1000);
-            
-            // Автообновление данных
-            refreshAll();
-            setInterval(() => {
-                if (autoRefresh) {
-                    refreshVisibleData();
-                }
-            }, 2000);
-            
-            // Поиск
-            document.getElementById('searchProtections')?.addEventListener('input', function(e) {
-                searchProtections(e.target.value);
-            });
-        });
-        
-        // Переключение страниц
-        function switchPage(pageId) {
-            // Обновить активную вкладку
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`.nav-tab[data-page="${pageId}"]`).classList.add('active');
-            
-            // Показать нужную страницу
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            document.getElementById(pageId).classList.add('active');
-            
-            currentPage = pageId;
-            refreshVisibleData();
-        }
-        
-        // Обновление видимых данных
-        function refreshVisibleData() {
-            const page = document.getElementById(currentPage);
-            const elements = page.querySelectorAll('[data-reg]');
-            
-            elements.forEach(el => {
-                const regId = parseInt(el.dataset.reg);
-                const bit = el.dataset.bit;
-                
-                fetch(`/api/read?reg=${regId}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.ok) {
-                            const meta = registerIndex.get(regId);
-                            let value = data.value;
-                            
-                            // Обработка битовых значений
-                            if (bit !== undefined) {
-                                value = (value >> parseInt(bit)) & 1;
-                                el.textContent = value ? 'Вкл' : 'Выкл';
-                                if (value) {
-                                    el.style.color = '#4CAF50';
-                                    el.style.fontWeight = 'bold';
-                                } else {
-                                    el.style.color = '#dc3545';
-                                }
-                            } else {
-                                // Форматирование значения
-                                const formatted = formatValue(value, meta?.format || 'DEC', meta?.scale || 0);
-                                el.textContent = formatted;
-                                
-                                // Добавление единиц измерения
-                                if (meta) {
-                                    const unitSpan = el.querySelector('.unit');
-                                    if (!unitSpan && meta.name.match(/[АВкОмВтВА°CмС]/)) {
-                                        const unit = getUnitFromName(meta.name);
-                                        if (unit) {
-                                            el.innerHTML = formatted + `<span class="unit">${unit}</span>`;
-                                        }
-                                    }
-                                }
-                                
-                                // Цветовое кодирование
-                                colorCodeValue(el, value, regId);
-                            }
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Ошибка чтения регистра:', err);
-                        el.textContent = 'Ошибка';
-                        el.style.color = '#dc3545';
-                    });
-            });
-            
-            // Обновить время последнего обновления
-            updateLastUpdateTime();
-        }
-        
-        // Форматирование значения
+
+        // Menu structure
+        const menuStructure = {
+            dashboard: {
+                title: "Панель приборов",
+                sections: [
+                    { title: "Основные параметры", registers: [33, 34, 35, 41, 42, 43, 49, 50, 51, 32] },
+                    { title: "Токовая информация", registers: [44, 45, 46, 47, 48] },
+                    { title: "Мощность и энергия", registers: [54, 55, 56, 57, 58, 59, 80, 81, 82, 83] },
+                    { title: "Состояние системы", registers: [12, 23, 24, 25, 26, 28, 29, 30, 31] }
+                ]
+            },
+            protection: {
+                title: "Настройки защит",
+                sections: [
+                    { title: "МТЗ-1", registers: [115, 117, 118, 119, 120, 121] },
+                    { title: "МТЗ-2", registers: [122, 124, 125] },
+                    { title: "МТЗ-3", registers: [126, 128, 129, 130] },
+                    { title: "УМТЗ", registers: [131, 133, 134, 135] },
+                    { title: "ЗМТ", registers: [136, 138, 139, 140] },
+                    { title: "ЗММН", registers: [141, 143, 144, 145, 146, 147, 148] },
+                    { title: "ЗНФ", registers: [149, 151, 152, 153] },
+                    { title: "ЗОФ", registers: [154, 156, 157, 158] },
+                    { title: "БКИ", registers: [159, 161, 162, 163] },
+                    { title: "НЗЗ", registers: [164, 166, 167, 168, 169, 170] },
+                    { title: "Внешние защиты", registers: [171, 172, 174, 175, 176, 177, 178] },
+                    { title: "Местные защиты", registers: [179, 181, 182, 183, 184] },
+                    { title: "УРОВ", registers: [195, 197, 198] }
+                ]
+            },
+            measurements: {
+                title: "Текущие измерения",
+                sections: [
+                    { title: "Фазные токи", registers: [41, 42, 43, 44, 45, 46, 47, 48] },
+                    { title: "Фазные напряжения", registers: [33, 34, 35, 36, 37, 38, 39, 40] },
+                    { title: "Сопротивление изоляции", registers: [49, 50, 51, 52, 53] },
+                    { title: "Дополнительные параметры", registers: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74] }
+                ]
+            },
+            settings: {
+                title: "Настройки системы",
+                sections: [
+                    { title: "Конфигурация RS485", registers: [1, 2, 3, 5, 6] },
+                    { title: "Настройки времени", registers: [17, 18, 19, 20, 21, 22] },
+                    { title: "Параметры системы", registers: [252, 253, 254] },
+                    { title: "Управление КА", registers: [188, 189, 190, 193, 194] },
+                    { title: "АПВ/АВР", registers: [205, 207, 208, 209, 210, 212] }
+                ]
+            },
+            events: {
+                title: "Журнал событий",
+                sections: [
+                    { title: "Статистика", registers: [100, 102, 104, 106, 108, 110, 112] },
+                    { title: "Протоколы", registers: [101, 103, 105, 107, 109, 111, 113] },
+                    { title: "Запись мощности", registers: [114] }
+                ]
+            },
+            info: {
+                title: "Информация",
+                sections: [
+                    { title: "Изделие", registers: [10, 11] },
+                    { title: "RTC", registers: [16, 17, 18, 19, 20, 21, 22] },
+                    { title: "Диагностика", registers: [13, 14, 15, 199, 200, 201, 202, 203, 204] }
+                ]
+            },
+            all: {
+                title: "Все параметры",
+                sections: [
+                    { title: "Все регистры", registers: registerTable.map(item => item.id) }
+                ]
+            }
+        };
+
+        // State management
+        let currentTab = 'dashboard';
+        let refreshInterval = null;
+        const loadingRegisters = new Set();
+
+        // DOM Elements
+        const navItems = document.querySelectorAll('.nav-item');
+        const contentArea = document.getElementById('content-area');
+        const pageTitle = document.getElementById('page-title');
+        const refreshAllBtn = document.getElementById('refresh-all');
+        const btnRefresh = document.getElementById('btn-refresh');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalClose = document.getElementById('modal-close');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const btnImport = document.getElementById('btn-import');
+        const btnExport = document.getElementById('btn-export');
+        const importFile = document.getElementById('import-file');
+
+        // Format value based on register format
         function formatValue(raw, format, scale) {
+            if (raw === undefined || raw === null) return '--';
             const scaleFactor = Math.pow(10, scale);
-            
-            if (format === 'HEX') return `0x${raw.toString(16).toUpperCase()}`;
-            if (format === 'OCT') return `0o${raw.toString(8)}`;
-            if (format === 'BIN') return `0b${raw.toString(2)}`;
-            if (format === 'REL' || format === 'SDC') {
-                return (raw / scaleFactor).toFixed(scale);
-            }
-            if (format === 'SWT') return raw ? 'Да' : 'Нет';
-            
-            // DEC формат
-            if (scale > 0) {
-                return (raw / scaleFactor).toFixed(scale);
-            }
-            return raw.toString();
-        }
-        
-        // Получение единиц измерения из имени
-        function getUnitFromName(name) {
-            if (name.includes('А,') || name.includes('ток')) return 'А';
-            if (name.includes('В,') || name.includes('напряж')) return 'В';
-            if (name.includes('кОм') || name.includes('сопротивление')) return 'кОм';
-            if (name.includes('кВт')) return 'кВт';
-            if (name.includes('кВА')) return 'кВА';
-            if (name.includes('°C') || name.includes('температура')) return '°C';
-            if (name.includes('мС') || name.includes('мсек') || name.includes('сек')) return 'мс';
-            if (name.includes('мА')) return 'мА';
-            if (name.includes('%')) return '%';
-            return '';
-        }
-        
-        // Цветовое кодирование значений
-        function colorCodeValue(element, value, regId) {
-            // Сброс цвета
-            element.style.color = '';
-            element.style.fontWeight = '';
-            
-            // Особые случаи для статусов
-            if (regId === 28 || regId === 30) { // Аварии и неисправности
-                if (value > 0) {
-                    element.style.color = '#dc3545';
-                    element.style.fontWeight = 'bold';
-                }
-            }
-            else if (regId === 32) { // Температура
-                if (value > 600) { // >60°C
-                    element.style.color = '#dc3545';
-                } else if (value > 500) { // >50°C
-                    element.style.color = '#ffc107';
-                }
-            }
-            else if (regId === 52) { // Сопротивление изоляции
-                if (value < 100) { // <100 кОм
-                    element.style.color = '#dc3545';
-                } else if (value < 500) { // <500 кОм
-                    element.style.color = '#ffc107';
-                }
+            switch(format) {
+                case 'HEX': return `0x${raw.toString(16).toUpperCase().padStart(4, '0')}`;
+                case 'OCT': return `0o${raw.toString(8)}`;
+                case 'BIN': return `0b${raw.toString(2).padStart(16, '0')}`;
+                case 'SDC': return (raw / scaleFactor).toFixed(scale);
+                case 'SWT': return raw ? 'ВКЛ' : 'ВЫКЛ';
+                case 'REL': return (raw / scaleFactor).toFixed(scale);
+                default: return (raw / scaleFactor).toFixed(scale);
             }
         }
-        
-        // Открытие модального окна редактирования
-        function editProtection(regId) {
-            const meta = registerIndex.get(regId);
-            if (!meta) return;
-            
-            currentEditReg = regId;
-            
-            document.getElementById('paramName').textContent = meta.name;
-            document.getElementById('paramHelp').textContent = 
-                `Формат: ${meta.format}, Масштаб: ${meta.scale}`;
-            
-            // Получить текущее значение
-            fetch(`/api/read?reg=${regId}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok) {
-                        const current = formatValue(data.value, meta.format, meta.scale);
-                        document.getElementById('currentValue').textContent = current;
-                        document.getElementById('paramValue').value = data.value;
+
+        function parseValue(text, format, scale) {
+            const trimmed = text.trim();
+            const scaleFactor = Math.pow(10, scale);
+            switch(format) {
+                case 'HEX': return parseInt(trimmed.replace(/^0x/i, ''), 16);
+                case 'OCT': return parseInt(trimmed.replace(/^0o/i, ''), 8);
+                case 'BIN': return parseInt(trimmed.replace(/^0b/i, ''), 2);
+                case 'SWT': return ['1', 'вкл', 'true', 'on', 'да'].includes(trimmed.toLowerCase()) ? 1 : 0;
+                case 'SDC':
+                case 'REL': return Math.round(parseFloat(trimmed) * scaleFactor);
+                default: return Math.round(parseFloat(trimmed) * scaleFactor);
+            }
+        }
+
+        // Get value indicator class
+        function getValueIndicator(value, regId) {
+            if (value === undefined) return '';
+            if (regId >= 28 && regId <= 31 && value > 0) return 'value-critical';
+            if (value > 1000) return 'value-warning';
+            return 'value-normal';
+        }
+
+        // Create register card
+        function createRegisterCard(regId) {
+            const reg = registerIndex.get(regId);
+            if (!reg) return '';
+
+            return `
+                <div class="register-card" data-reg-id="${regId}">
+                    <div class="card-header">
+                        <div class="register-name">${reg.name}</div>
+                        <div class="register-id">#${reg.id}</div>
+                    </div>
+                    
+                    <div class="value-display" id="value-${regId}">
+                        <span class="loading-value">
+                            <div class="loader"></div>
+                        </span>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <div class="format-badge">
+                            ${reg.format} | масштаб: ${reg.scale}
+                        </div>
+                        <div class="value-indicator ${getValueIndicator(null, regId)}" id="indicator-${regId}">
+                            ожидание...
+                        </div>
+                    </div>
+                    
+                    <div class="edit-form" style="display: none;" id="edit-form-${regId}">
+                        <input type="text" class="edit-input" placeholder="Новое значение" id="edit-input-${regId}">
+                        <button class="edit-btn" onclick="saveRegister(${regId})">
+                            <i class="fas fa-check"></i> Применить
+                        </button>
+                        <button class="edit-btn" style="background: var(--danger);" onclick="cancelEdit(${regId})">
+                            <i class="fas fa-times"></i> Отмена
+                        </button>
+                    </div>
+                    
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="action-btn" style="flex: 1;" onclick="toggleEdit(${regId})">
+                            <i class="fas fa-edit"></i> Изменить
+                        </button>
+                        <button class="action-btn" style="flex: 1;" onclick="showRegisterDetails(${regId})">
+                            <i class="fas fa-info-circle"></i> Подробнее
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load tab content
+        function loadTabContent(tabId) {
+            const tab = menuStructure[tabId];
+            if (!tab) return;
+
+            currentTab = tabId;
+            pageTitle.textContent = tab.title;
+
+            let html = '';
+            tab.sections.forEach(section => {
+                html += `
+                    <div style="margin-bottom: 40px;">
+                        <h3 style="margin-bottom: 20px; color: var(--primary-dark); display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-folder-open"></i>
+                            ${section.title}
+                        </h3>
+                        <div class="register-grid">
+                            ${section.registers.map(regId => createRegisterCard(regId)).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            contentArea.innerHTML = html;
+            refreshTabValues();
+        }
+
+        // Refresh values for current tab
+        async function refreshTabValues() {
+            const tab = menuStructure[currentTab];
+            if (!tab) return;
+            const regIds = tab.sections.flatMap(section => section.registers);
+            for (const regId of regIds) {
+                await updateRegisterValue(regId);
+            }
+        }
+
+        // Update single register value
+        async function updateRegisterValue(regId) {
+            if (loadingRegisters.has(regId)) return;
+            loadingRegisters.add(regId);
+            const valueElement = document.getElementById(`value-${regId}`);
+            const indicatorElement = document.getElementById(`indicator-${regId}`);
+            if (valueElement) {
+                valueElement.innerHTML = '<div class="loader"></div>';
+            }
+
+            try {
+                const response = await fetch(`/api/read?reg=${regId}`);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    const reg = registerIndex.get(regId);
+                    const formattedValue = formatValue(data.value, reg?.format || 'DEC', reg?.scale || 0);
+                    
+                    if (valueElement) {
+                        valueElement.innerHTML = `
+                            <span style="font-size: 32px; font-weight: 700;">${formattedValue}</span>
+                            ${reg?.format === 'SWT' ? '' : '<span class="unit">ед.</span>'}
+                        `;
                     }
-                });
-            
-            document.getElementById('editModal').style.display = 'flex';
-        }
-        
-        // Сохранение параметра
-        function saveParam() {
-            if (!currentEditReg) return;
-            
-            const meta = registerIndex.get(currentEditReg);
-            const inputValue = document.getElementById('paramValue').value;
-            
-            let rawValue;
-            if (meta.format === 'HEX') {
-                rawValue = parseInt(inputValue, 16);
-            } else if (meta.format === 'SWT') {
-                rawValue = inputValue === '1' || inputValue.toLowerCase() === 'true' ? 1 : 0;
-            } else {
-                const scaleFactor = Math.pow(10, meta.scale || 0);
-                rawValue = Math.round(parseFloat(inputValue) * scaleFactor);
-            }
-            
-            fetch(`/api/write?reg=${currentEditReg}&val=${rawValue}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok) {
-                        showNotification('Параметр успешно обновлен');
-                        refreshAll();
-                        closeModal();
-                    } else {
-                        showNotification('Ошибка обновления параметра', 'error');
+                    
+                    if (indicatorElement) {
+                        indicatorElement.className = `value-indicator ${getValueIndicator(data.value, regId)}`;
+                        indicatorElement.textContent = 'актуально';
                     }
-                });
-        }
-        
-        // Закрытие модального окна
-        function closeModal() {
-            document.getElementById('editModal').style.display = 'none';
-            currentEditReg = null;
-        }
-        
-        // Показать уведомление
-        function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            notification.querySelector('#notificationText').textContent = message;
-            
-            if (type === 'error') {
-                notification.style.background = '#dc3545';
-                notification.querySelector('i').className = 'fas fa-exclamation-circle';
-            } else {
-                notification.style.background = '#4CAF50';
-                notification.querySelector('i').className = 'fas fa-check-circle';
+                } else {
+                    if (valueElement) valueElement.innerHTML = '<span style="color: var(--danger);">Ошибка</span>';
+                    if (indicatorElement) {
+                        indicatorElement.className = 'value-indicator value-critical';
+                        indicatorElement.textContent = 'ошибка';
+                    }
+                }
+            } catch (error) {
+                console.error('Error reading register:', error);
+                if (valueElement) valueElement.innerHTML = '<span style="color: var(--danger);">Ошибка</span>';
+                if (indicatorElement) {
+                    indicatorElement.className = 'value-indicator value-critical';
+                    indicatorElement.textContent = 'ошибка сети';
+                }
+            } finally {
+                loadingRegisters.delete(regId);
             }
-            
-            notification.style.display = 'flex';
+        }
+
+        // Toggle edit mode
+        function toggleEdit(regId) {
+            const editForm = document.getElementById(`edit-form-${regId}`);
+            const currentValue = document.getElementById(`value-${regId}`).textContent;
+            const input = document.getElementById(`edit-input-${regId}`);
+            editForm.style.display = editForm.style.display === 'none' ? 'flex' : 'none';
+            if (input) {
+                input.value = currentValue.replace('ед.', '').trim();
+                input.focus();
+            }
+        }
+
+        function cancelEdit(regId) {
+            document.getElementById(`edit-form-${regId}`).style.display = 'none';
+        }
+
+        async function saveRegister(regId) {
+            const input = document.getElementById(`edit-input-${regId}`);
+            const value = input.value.trim();
+            const reg = registerIndex.get(regId);
+            if (!reg || !value) return;
+
+            try {
+                const rawValue = parseValue(value, reg.format, reg.scale);
+                const response = await fetch(`/api/write?reg=${regId}&val=${rawValue}`, { method: 'POST' });
+                const result = await response.json();
+                if (result.ok) {
+                    showAlert('Значение успешно обновлено', 'success');
+                    updateRegisterValue(regId);
+                    cancelEdit(regId);
+                } else {
+                    showAlert('Ошибка при записи значения', 'error');
+                }
+            } catch (error) {
+                console.error('Error writing register:', error);
+                showAlert('Ошибка сети', 'error');
+            }
+        }
+
+        async function showRegisterDetails(regId) {
+            const reg = registerIndex.get(regId);
+            if (!reg) return;
+
+            try {
+                const response = await fetch(`/api/read?reg=${regId}`);
+                const data = await response.json();
+                
+                modalTitle.textContent = reg.name;
+                modalContent.innerHTML = `
+                    <div style="padding: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <div style="background: var(--gray); padding: 15px; border-radius: 10px;">
+                                <div style="color: var(--text-light); font-size: 12px;">ID регистра</div>
+                                <div style="font-size: 24px; font-weight: 700; color: var(--primary);">#${reg.id}</div>
+                            </div>
+                            <div style="background: var(--gray); padding: 15px; border-radius: 10px;">
+                                <div style="color: var(--text-light); font-size: 12px;">Формат</div>
+                                <div style="font-size: 18px; font-weight: 600;">${reg.format}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                            <div style="font-size: 12px; opacity: 0.9;">Текущее значение</div>
+                            <div style="font-size: 48px; font-weight: 800; margin: 10px 0;">
+                                ${formatValue(data.value, reg.format, reg.scale)}
+                            </div>
+                            <div style="font-size: 14px; opacity: 0.9;">масштаб: ${reg.scale}</div>
+                        </div>
+                        
+                        <div style="background: var(--gray); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                            <div style="color: var(--text-light); font-size: 12px;">Описание</div>
+                            <div style="margin-top: 5px;">${reg.name}</div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <button class="action-btn primary" style="flex: 1;" onclick="toggleEdit(${regId}); modalOverlay.classList.remove('active');">
+                                <i class="fas fa-edit"></i> Изменить значение
+                            </button>
+                            <button class="action-btn" style="flex: 1;" onclick="modalOverlay.classList.remove('active');">
+                                <i class="fas fa-times"></i> Закрыть
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                modalOverlay.classList.add('active');
+            } catch (error) {
+                console.error('Error loading register details:', error);
+                showAlert('Ошибка при загрузке данных', 'error');
+            }
+        }
+
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alerts-container');
+            const alertId = 'alert-' + Date.now();
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.id = alertId;
+            alert.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button onclick="document.getElementById('${alertId}').remove()" style="margin-left: auto; background: none; border: none; color: inherit; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(alert);
             setTimeout(() => {
-                notification.style.display = 'none';
+                if (document.getElementById(alertId)) {
+                    document.getElementById(alertId).remove();
+                }
+            }, 5000);
+        }
+
+        async function updateSystemStats() {
+            try {
+                const uptimeResponse = await fetch('/api/read?reg=96');
+                const uptimeData = await uptimeResponse.json();
+                if (uptimeData.ok) {
+                    const hours = Math.floor(uptimeData.value / 3600);
+                    const minutes = Math.floor((uptimeData.value % 3600) / 60);
+                    const seconds = uptimeData.value % 60;
+                    document.getElementById('uptime').textContent = 
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+
+                const tempResponse = await fetch('/api/read?reg=32');
+                const tempData = await tempResponse.json();
+                if (tempData.ok) {
+                    document.getElementById('temperature').textContent = 
+                        `${(tempData.value / 10).toFixed(1)}°C`;
+                }
+
+                const alarmResponse = await fetch('/api/read?reg=77');
+                const alarmData = await alarmResponse.json();
+                if (alarmData.ok) {
+                    document.getElementById('alarm-count').textContent = alarmData.value;
+                }
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        async function exportSettings() {
+            showAlert('Экспорт настроек...', 'info');
+            const data = {};
+            for (const reg of registerTable) {
+                try {
+                    const response = await fetch(`/api/read?reg=${reg.id}`);
+                    const payload = await response.json();
+                    if (payload.ok) {
+                        data[reg.id] = payload.value;
+                    }
+                } catch (error) {
+                    console.error('Export error for reg', reg.id, error);
+                }
+            }
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'mtzp_settings.json';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showAlert('Экспорт настроек завершен', 'success');
+        }
+
+        async function importSettings(file) {
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                const entries = Object.entries(data);
+                for (const [regId, value] of entries) {
+                    await fetch(`/api/write?reg=${regId}&val=${value}`, { method: 'POST' });
+                }
+                showAlert('Импорт настроек завершен', 'success');
+                refreshTabValues();
+            } catch (error) {
+                console.error('Import error', error);
+                showAlert('Ошибка импорта настроек', 'error');
+            }
+        }
+
+        function init() {
+            loadTabContent('dashboard');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+                    loadTabContent(item.dataset.tab);
+                });
+            });
+
+            refreshAllBtn.addEventListener('click', refreshTabValues);
+            btnRefresh.addEventListener('click', refreshTabValues);
+
+            modalClose.addEventListener('click', () => {
+                modalOverlay.classList.remove('active');
+            });
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.classList.remove('active');
+                }
+            });
+
+            document.getElementById('btn-save').addEventListener('click', () => {
+                fetch('/api/write?reg=0&val=1')
+                    .then(() => showAlert('Настройки сохранены', 'success'));
+            });
+
+            document.getElementById('btn-reset').addEventListener('click', () => {
+                if (confirm('Вы уверены, что хотите выполнить сброс устройства?')) {
+                    fetch('/api/write?reg=0&val=2')
+                        .then(() => showAlert('Устройство сброшено', 'warning'));
+                }
+            });
+
+            btnExport.addEventListener('click', exportSettings);
+            btnImport.addEventListener('click', () => importFile.click());
+            importFile.addEventListener('change', () => {
+                if (importFile.files.length) {
+                    importSettings(importFile.files[0]);
+                    importFile.value = '';
+                }
+            });
+
+            refreshInterval = setInterval(() => {
+                refreshTabValues();
+                updateSystemStats();
             }, 3000);
+
+            updateSystemStats();
         }
-        
-        // Обновление времени
-        function updateTime() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('ru-RU');
-            const dateStr = now.toLocaleDateString('ru-RU');
-            
-            document.querySelectorAll('.time').forEach(el => {
-                el.textContent = timeStr;
-            });
-        }
-        
-        // Обновление времени последнего обновления
-        function updateLastUpdateTime() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('ru-RU');
-            document.getElementById('lastUpdateTime').textContent = timeStr;
-        }
-        
-        // Полное обновление
-        function refreshAll() {
-            refreshVisibleData();
-            showNotification('Данные обновлены');
-        }
-        
-        // Вспомогательные функции
-        function showProtections() {
-            switchPage('protections');
-        }
-        
-        function toggleAPV() {
-            // Реализация переключения АПВ
-            showNotification('Режим АПВ изменен');
-        }
-        
-        function saveSettings() {
-            showNotification('Настройки сохранены');
-        }
-        
-        function loadFactorySettings() {
-            if (confirm('Загрузить заводские настройки? Все изменения будут потеряны.')) {
-                showNotification('Загрузка заводских настроек...');
-                setTimeout(() => {
-                    showNotification('Заводские настройки загружены');
-                    refreshAll();
-                }, 1000);
-            }
-        }
-        
-        function calibrateSensors() {
-            showNotification('Запущена юстировка датчиков');
-        }
-        
-        function resetCounters() {
-            if (confirm('Обнулить все счетчики?')) {
-                showNotification('Счетчики обнулены');
-            }
-        }
-        
-        function changePassword() {
-            const newPass = prompt('Введите новый пароль:');
-            if (newPass) {
-                showNotification('Пароль изменен');
-            }
-        }
-        
-        function clearLogs() {
-            if (confirm('Очистить все журналы событий?')) {
-                showNotification('Журналы очищены');
-            }
-        }
-        
-        function exportLogs() {
-            showNotification('Экспорт данных начат');
-        }
-        
-        function syncTime() {
-            const now = new Date();
-            showNotification(`Время синхронизировано: ${now.toLocaleString('ru-RU')}`);
-        }
-        
-        function runDiagnostics() {
-            showNotification('Диагностика запущена');
-        }
-        
-        // Поиск защит
-        function searchProtections(query) {
-            const cards = document.querySelectorAll('#protections .card');
-            query = query.toLowerCase();
-            
-            cards.forEach(card => {
-                const title = card.querySelector('.card-title').textContent.toLowerCase();
-                const isVisible = title.includes(query) || query === '';
-                card.style.display = isVisible ? 'block' : 'none';
-            });
-        }
-        
-        // Отображение деталей
-        function showRelaysDetails() {
-            alert('Детальная информация о релейных выходах будет отображена здесь');
-        }
-        
-        function showInputsDetails() {
-            alert('Детальная информация о входах будет отображена здесь');
-        }
-        
-        function showAlarmsDetails() {
-            alert('Детальная информация об авариях будет отображена здесь');
-        }
-        
-        function showLogDetails(type) {
-            alert(`Детали журнала ${type} будут отображены здесь`);
-        }
+
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
