@@ -142,8 +142,8 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>МТЗП-2T | Панель управления</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>МТЗП</title>
     <style>
         :root {
             --primary: #2196f3;
@@ -152,454 +152,302 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
             --success: #4caf50;
             --warning: #ff9800;
             --danger: #f44336;
-            --dark: #1a237e;
-            --light: #e3f2fd;
-            --gray: #f5f5f5;
-            --dark-gray: #424242;
-            --text: #212121;
-            --text-light: #757575;
-            --border: #e0e0e0;
-            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --light: #f5f7fa;
+            --gray: #e0e0e0;
+            --dark-gray: #757575;
+            --text: #333333;
+            --border: #d1d1d1;
+            --card-bg: #ffffff;
+            --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            font-size: 14px;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background: var(--light);
             color: var(--text);
+            line-height: 1.4;
+            padding: 0;
+            margin: 0;
             min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
         }
 
         /* Header */
         .header {
-            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            background: var(--header-bg);
             color: white;
-            padding: 25px 30px;
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: relative;
-            overflow: hidden;
+            margin-bottom: 8px;
         }
 
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-            background-size: 30px 30px;
-            opacity: 0.1;
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
         }
 
-        .header-content h1 {
-            font-size: 28px;
-            font-weight: 300;
-            margin-bottom: 5px;
-        }
-
-        .header-content .subtitle {
-            font-size: 14px;
+        .header-subtitle {
+            font-size: 0.85rem;
             opacity: 0.9;
         }
 
         .status-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 20px;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-
-        .connection-status {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 10px;
-            background: rgba(255,255,255,0.1);
-            padding: 10px 20px;
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 6px;
         }
 
-        .status-indicator {
-            width: 10px;
-            height: 10px;
+        .status-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--success);
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0% { opacity: 0.5; }
+            0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
-            100% { opacity: 0.5; }
         }
 
-        /* Main Layout */
-        .main-layout {
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
             display: flex;
-            min-height: 800px;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            background: var(--gray);
-            border-right: 1px solid var(--border);
-            padding: 25px 0;
-        }
-
-        .nav-section {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 20px;
-        }
-
-        .nav-section h3 {
-            color: var(--primary-dark);
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-section h3 i {
-            font-size: 16px;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid var(--border);
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         }
 
         .nav-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            padding: 12px 15px;
-            margin: 5px 0;
-            color: var(--text);
+            gap: 4px;
+            padding: 6px 12px;
+            color: var(--dark-gray);
             text-decoration: none;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            gap: 12px;
-        }
-
-        .nav-item:hover {
-            background: var(--primary);
-            color: white;
-            transform: translateX(5px);
+            font-size: 0.75rem;
+            flex: 1;
+            max-width: 80px;
+            border-radius: 8px;
+            transition: all 0.2s;
         }
 
         .nav-item.active {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            color: white;
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+            color: var(--primary);
+            background: rgba(33, 150, 243, 0.08);
         }
 
-        .nav-item i {
-            font-size: 18px;
+        .nav-icon {
+            font-size: 1.2rem;
             width: 24px;
-            text-align: center;
-        }
-
-        .quick-actions {
-            padding: 0 20px;
-        }
-
-        .action-btn {
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            background: white;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            color: var(--text);
-            font-weight: 500;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .action-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            transform: translateY(-2px);
-        }
-
-        .action-btn.primary {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-
-        .action-btn.primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
         }
 
         /* Main Content */
         .main-content {
-            flex: 1;
-            padding: 30px;
-            background: white;
+            padding: 16px;
+            padding-bottom: 70px;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
-        .content-header {
+        /* Quick Actions */
+        .quick-actions {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--border);
-        }
-
-        .content-header h2 {
-            color: var(--primary-dark);
-            font-size: 24px;
-            font-weight: 600;
-        }
-
-        .refresh-btn {
-            display: flex;
-            align-items: center;
             gap: 8px;
-            padding: 10px 20px;
-            background: var(--light);
-            border: none;
-            border-radius: 10px;
-            color: var(--primary);
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            margin-bottom: 16px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 4px 0;
         }
 
-        .refresh-btn:hover {
+        .quick-action {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .quick-action.primary {
             background: var(--primary);
             color: white;
-        }
-
-        /* Register Cards */
-        .register-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .register-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid var(--border);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .register-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             border-color: var(--primary);
         }
 
-        .register-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: var(--primary);
+        /* Cards */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 20px 0 12px 0;
+            padding-left: 8px;
+            border-left: 3px solid var(--primary);
+            color: var(--primary-dark);
+        }
+
+        .register-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .register-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .register-card:active {
+            transform: scale(0.98);
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .register-name {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 0.9rem;
+            font-weight: 500;
             color: var(--text);
-            line-height: 1.4;
+            flex: 1;
+            padding-right: 8px;
         }
 
         .register-id {
+            font-size: 0.75rem;
+            color: var(--dark-gray);
             background: var(--light);
-            color: var(--primary);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .value-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 8px 0;
         }
 
         .value-display {
-            font-size: 32px;
+            font-size: 1.6rem;
             font-weight: 700;
             color: var(--primary-dark);
-            text-align: center;
-            padding: 20px;
-            margin: 10px 0;
-            background: linear-gradient(to right, #f8f9fa, #e9ecef);
-            border-radius: 10px;
-            border: 2px solid var(--border);
+            flex: 1;
         }
 
-        .unit {
-            font-size: 14px;
-            color: var(--text-light);
-            margin-left: 5px;
+        .value-unit {
+            font-size: 0.85rem;
+            color: var(--dark-gray);
+            margin-left: 4px;
         }
 
         .card-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 20px;
-            padding-top: 15px;
+            margin-top: 10px;
+            padding-top: 10px;
             border-top: 1px solid var(--border);
+            font-size: 0.8rem;
         }
 
-        .format-badge {
-            background: var(--gray);
-            color: var(--text-light);
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 12px;
+        .register-format {
+            color: var(--dark-gray);
         }
 
-        .edit-form {
+        .register-status {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            align-items: center;
+            gap: 4px;
         }
 
-        .edit-input {
-            flex: 1;
-            padding: 10px 15px;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
+        .status-dot.small {
+            width: 6px;
+            height: 6px;
         }
 
-        .edit-input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .edit-btn {
-            padding: 10px 20px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .edit-btn:hover {
-            background: var(--primary-dark);
-        }
-
-        /* Alerts and Status */
+        /* Alerts */
         .alert {
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin: 15px 0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin: 10px 0;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 0.85rem;
             animation: slideIn 0.3s ease;
         }
 
         @keyframes slideIn {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .alert.success {
             background: #e8f5e9;
             color: #2e7d32;
-            border-left: 4px solid #4caf50;
-        }
-
-        .alert.warning {
-            background: #fff3e0;
-            color: #f57c00;
-            border-left: 4px solid #ff9800;
+            border-left: 3px solid #4caf50;
         }
 
         .alert.error {
             background: #ffebee;
             color: #c62828;
-            border-left: 4px solid #f44336;
-        }
-
-        /* Loading Animation */
-        .loader {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid var(--border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .register-grid {
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            }
-        }
-
-        @media (max-width: 768px) {
-            .main-layout {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
-                padding: 20px;
-            }
-            
-            .register-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .header {
-                flex-direction: column;
-                text-align: center;
-                gap: 15px;
-            }
+            border-left: 3px solid #f44336;
         }
 
         /* Modal */
@@ -614,9 +462,12 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            padding: 16px;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
         }
 
         .modal-overlay.active {
@@ -626,11 +477,13 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
 
         .modal {
             background: white;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 500px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
             transform: translateY(20px);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s;
         }
 
         .modal-overlay.active .modal {
@@ -638,223 +491,309 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
         }
 
         .modal-header {
-            padding: 20px;
+            padding: 16px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 12px 12px 0 0;
         }
 
-        .modal-body {
-            padding: 20px;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--text-light);
-        }
-
-        /* Value indicators */
-        .value-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 12px;
+        .modal-title {
+            font-size: 1.1rem;
             font-weight: 600;
         }
 
-        .value-normal { background: #e8f5e9; color: #2e7d32; }
-        .value-warning { background: #fff3e0; color: #f57c00; }
-        .value-critical { background: #ffebee; color: #c62828; }
-
-        /* Toggle Switch */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-gray);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 50%;
         }
 
-        input:checked + .slider {
-            background-color: var(--success);
+        .modal-close:active {
+            background: var(--gray);
         }
 
-        input:checked + .slider:before {
-            transform: translateX(26px);
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-section {
+            margin-bottom: 20px;
+        }
+
+        .modal-label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--dark-gray);
+            font-size: 0.85rem;
+        }
+
+        .modal-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            padding: 10px;
+            background: var(--light);
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gray);
+            color: var(--text);
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--dark-gray);
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (min-width: 360px) {
+            .register-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            }
+        }
+
+        @media (min-width: 768px) {
+            .register-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+            
+            .bottom-nav {
+                display: none;
+            }
+            
+            .main-content {
+                padding-bottom: 20px;
+            }
+        }
+
+        .no-select {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-content">
-                <h1><i class="fas fa-bolt"></i> МТЗП-2T Контроллер</h1>
-                <div class="subtitle">Панель управления защитными устройствами</div>
-                <div class="status-badge">
-                    <i class="fas fa-microchip"></i> Адрес устройства: 0x01
-                </div>
-            </div>
-            <div class="connection-status">
-                <div class="status-indicator"></div>
-                <span>Подключено к устройству</span>
+<body class="no-select">
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">МТЗП-2T</div>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span>Подключено</span>
             </div>
         </div>
+        <div class="header-subtitle">Панель управления защитой</div>
+    </div>
 
-        <!-- Main Layout -->
-        <div class="main-layout">
-            <!-- Sidebar Navigation -->
-            <div class="sidebar">
-                <div class="nav-section">
-                    <h3><i class="fas fa-sliders-h"></i> Основные разделы</h3>
-                    <div class="nav-item active" data-tab="dashboard">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Панель приборов</span>
-                    </div>
-                    <div class="nav-item" data-tab="protection">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Защиты</span>
-                    </div>
-                    <div class="nav-item" data-tab="measurements">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Измерения</span>
-                    </div>
-                    <div class="nav-item" data-tab="settings">
-                        <i class="fas fa-cog"></i>
-                        <span>Настройки</span>
-                    </div>
-                    <div class="nav-item" data-tab="events">
-                        <i class="fas fa-history"></i>
-                        <span>Журнал событий</span>
-                    </div>
-                    <div class="nav-item" data-tab="info">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Информация</span>
-                    </div>
-                    <div class="nav-item" data-tab="all">
-                        <i class="fas fa-list"></i>
-                        <span>Все параметры</span>
-                    </div>
-                </div>
+    <div class="main-content" id="content">
+        <div id="alerts"></div>
 
-                <div class="nav-section">
-                    <h3><i class="fas fa-bolt"></i> Быстрые действия</h3>
-                    <button class="action-btn" id="btn-refresh">
-                        <i class="fas fa-sync-alt"></i>
-                        <span>Обновить данные</span>
-                    </button>
-                    <button class="action-btn" id="btn-save">
-                        <i class="fas fa-save"></i>
-                        <span>Сохранить настройки</span>
-                    </button>
-                    <button class="action-btn" id="btn-reset">
-                        <i class="fas fa-undo"></i>
-                        <span>Сброс устройства</span>
-                    </button>
-                    <button class="action-btn" id="btn-import">
-                        <i class="fas fa-upload"></i>
-                        <span>Импорт настроек</span>
-                    </button>
-                    <button class="action-btn primary" id="btn-export">
-                        <i class="fas fa-download"></i>
-                        <span>Экспорт настроек</span>
-                    </button>
-                    <input type="file" id="import-file" accept="application/json" style="display:none" />
-                </div>
+        <div class="quick-actions">
+            <button class="quick-action" id="btn-refresh">
+                <i class="fas fa-sync-alt"></i>
+                <span>Обновить</span>
+            </button>
+            <button class="quick-action" id="btn-save">
+                <i class="fas fa-save"></i>
+                <span>Сохранить</span>
+            </button>
+            <button class="quick-action" id="btn-export">
+                <i class="fas fa-download"></i>
+                <span>Экспорт</span>
+            </button>
+            <button class="quick-action" id="btn-import">
+                <i class="fas fa-upload"></i>
+                <span>Импорт</span>
+            </button>
+            <button class="quick-action primary" id="btn-scan">
+                <i class="fas fa-search"></i>
+                <span>Сканировать</span>
+            </button>
+            <input type="file" id="import-file" accept="application/json" style="display:none" />
+        </div>
 
-                <div class="nav-section">
-                    <h3><i class="fas fa-chart-bar"></i> Статистика</h3>
-                    <div style="padding: 10px; background: white; border-radius: 10px; margin-top: 10px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: var(--text-light);">Время работы:</span>
-                            <span style="font-weight: 600;" id="uptime">--:--:--</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: var(--text-light);">Аварии:</span>
-                            <span class="value-critical" id="alarm-count">0</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: var(--text-light);">Температура:</span>
-                            <span style="font-weight: 600;" id="temperature">--°C</span>
-                        </div>
-                    </div>
-                </div>
+        <div id="content-area">
+            <div class="loading" style="padding: 40px; text-align: center;">
+                <div class="spinner"></div>
+                <span>Загрузка...</span>
             </div>
+        </div>
+    </div>
 
-            <!-- Main Content -->
-            <div class="main-content">
-                <!-- Content Header -->
-                <div class="content-header">
-                    <h2 id="page-title">Панель приборов</h2>
-                    <button class="refresh-btn" id="refresh-all">
-                        <i class="fas fa-redo"></i>
-                        <span>Обновить все</span>
-                    </button>
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active" data-tab="dashboard">
+            <div class="nav-icon">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <span>Прибор</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="protection">
+            <div class="nav-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <span>Защиты</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="signals">
+            <div class="nav-icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <span>Сигналы</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="settings">
+            <div class="nav-icon">
+                <i class="fas fa-cog"></i>
+            </div>
+            <span>Настройки</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="info">
+            <div class="nav-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <span>Инфо</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="all">
+            <div class="nav-icon">
+                <i class="fas fa-list"></i>
+            </div>
+            <span>Все</span>
+        </a>
+    </div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Редактирование</div>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <div class="modal-label">Текущее значение</div>
+                    <div class="modal-value" id="currentValue">--</div>
                 </div>
-
-                <!-- Alerts Area -->
-                <div id="alerts-container"></div>
-
-                <!-- Content will be loaded here -->
-                <div id="content-area">
-                    <!-- Dashboard will be loaded here by JavaScript -->
+                <div class="form-group">
+                    <label class="modal-label" id="newValueLabel">Новое значение</label>
+                    <input type="text" class="form-input" id="newValue" placeholder="Введите значение">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" id="btnCancel">Отмена</button>
+                    <button class="btn btn-primary" id="btnSave">Сохранить</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal for detailed view -->
-    <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-overlay" id="infoModal">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="modal-title">Детальная информация</h3>
-                <button class="close-btn" id="modal-close">&times;</button>
+                <div class="modal-title">Информация</div>
+                <button class="modal-close" id="infoModalClose">&times;</button>
             </div>
-            <div class="modal-body" id="modal-content">
-                <!-- Modal content will be loaded here -->
+            <div class="modal-body">
+                <div class="modal-section">
+                    <div class="modal-label">Название</div>
+                    <div style="font-weight: 500; margin-bottom: 10px;" id="infoName">--</div>
+                    <div class="modal-label">ID регистра</div>
+                    <div style="font-family: monospace; font-size: 1.1rem; margin-bottom: 10px;" id="infoId">--</div>
+                    <div class="modal-label">Формат</div>
+                    <div style="margin-bottom: 10px;" id="infoFormat">--</div>
+                    <div class="modal-label">Масштаб</div>
+                    <div style="margin-bottom: 10px;" id="infoScale">--</div>
+                    <div class="modal-label">Текущее значение</div>
+                    <div class="modal-value" id="infoValue">--</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Register data structure
-		const registerTable = [
+        const CONFIG = {
+            refreshInterval: 5000,
+            deviceAddress: 0x01,
+            editableRegisters: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 117, 118, 119, 120, 121, 124, 125, 128, 129, 130, 133, 134, 135, 138, 139, 140, 143, 144, 145, 146, 147, 148, 151, 152, 153, 156, 157, 158, 161, 162, 163, 166, 167, 168, 169, 170, 174, 175, 176, 177, 178, 181, 182, 183, 184, 187, 188, 189, 190, 197, 198, 201, 202, 203, 204, 207, 208, 209, 212, 216, 217, 218, 219, 252]
+        };
+
+        const registerTable = [
 {"id":0,"name":"Регистр команд","format":"DEC","scale":0},
 		{"id":1,"name":"RS485 Адрес","format":"HEX","scale":0},
 		{"id":2,"name":"RS485 Скорость, kbps","format":"DEC","scale":1},
@@ -1136,114 +1075,105 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
 
         const registerIndex = new Map(registerTable.map(item => [item.id, item]));
 
-        // Menu structure
-        const menuStructure = {
+        const tabContent = {
             dashboard: {
-                title: "Панель приборов",
-                sections: [
-                    { title: "Основные параметры", registers: [33, 34, 35, 41, 42, 43, 49, 50, 51, 32] },
-                    { title: "Токовая информация", registers: [44, 45, 46, 47, 48] },
-                    { title: "Мощность и энергия", registers: [54, 55, 56, 57, 58, 59, 80, 81, 82, 83] },
-                    { title: "Состояние системы", registers: [12, 23, 24, 25, 26, 28, 29, 30, 31] }
+                title: "Текущие параметры",
+                groups: [
+                    { title: "Напряжения", registers: [33, 34, 35, 36, 37] },
+                    { title: "Токи", registers: [41, 42, 43, 44, 45, 46, 47, 48] },
+                    { title: "Мощность", registers: [54, 55, 56, 57, 58, 59, 80, 81, 82, 83] },
+                    { title: "Датчики", registers: [32, 60, 61, 62, 63, 64, 65, 66] },
+                    { title: "Наработка", registers: [92, 93, 94, 95, 96, 97, 98, 99] }
                 ]
             },
             protection: {
                 title: "Настройки защит",
-                sections: [
+                groups: [
                     { title: "МТЗ-1", registers: [115, 117, 118, 119, 120, 121] },
                     { title: "МТЗ-2", registers: [122, 124, 125] },
                     { title: "МТЗ-3", registers: [126, 128, 129, 130] },
                     { title: "УМТЗ", registers: [131, 133, 134, 135] },
                     { title: "ЗМТ", registers: [136, 138, 139, 140] },
-                    { title: "ЗММН", registers: [141, 143, 144, 145, 146, 147, 148] },
+                    { title: "ЗМН", registers: [141, 143, 144, 145, 146, 147, 148] },
                     { title: "ЗНФ", registers: [149, 151, 152, 153] },
                     { title: "ЗОФ", registers: [154, 156, 157, 158] },
                     { title: "БКИ", registers: [159, 161, 162, 163] },
                     { title: "НЗЗ", registers: [164, 166, 167, 168, 169, 170] },
-                    { title: "Внешние защиты", registers: [171, 172, 174, 175, 176, 177, 178] },
-                    { title: "Местные защиты", registers: [179, 181, 182, 183, 184] },
+                    { title: "EXT", registers: [171, 172, 173, 174, 175, 176, 177, 178] },
+                    { title: "INT", registers: [179, 181, 182, 183, 184] },
                     { title: "УРОВ", registers: [195, 197, 198] }
                 ]
             },
-            measurements: {
-                title: "Текущие измерения",
-                sections: [
-                    { title: "Фазные токи", registers: [41, 42, 43, 44, 45, 46, 47, 48] },
-                    { title: "Фазные напряжения", registers: [33, 34, 35, 36, 37, 38, 39, 40] },
-                    { title: "Сопротивление изоляции", registers: [49, 50, 51, 52, 53] },
-                    { title: "Дополнительные параметры", registers: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74] }
+            signals: {
+                title: "Состояние сигналов",
+                groups: [
+                    { title: "Реле", registers: [23] },
+                    { title: "Внешние входы", registers: [24, 25] },
+                    { title: "Внутренние входы", registers: [26, 27] },
+                    { title: "Аварии/Неиспр.", registers: [28, 29, 30, 31] }
                 ]
             },
             settings: {
                 title: "Настройки системы",
-                sections: [
-                    { title: "Конфигурация RS485", registers: [1, 2, 3, 5, 6] },
-                    { title: "Настройки времени", registers: [17, 18, 19, 20, 21, 22] },
-                    { title: "Параметры системы", registers: [252, 253, 254] },
-                    { title: "Управление КА", registers: [188, 189, 190, 193, 194] },
-                    { title: "АПВ/АВР", registers: [205, 207, 208, 209, 210, 212] }
-                ]
-            },
-            events: {
-                title: "Журнал событий",
-                sections: [
-                    { title: "Статистика", registers: [100, 102, 104, 106, 108, 110, 112] },
-                    { title: "Протоколы", registers: [101, 103, 105, 107, 109, 111, 113] },
-                    { title: "Запись мощности", registers: [114] }
+                groups: [
+                    { title: "RS485", registers: [1, 2, 3, 5, 6] },
+                    { title: "RTC", registers: [16, 17, 18, 19, 20, 21, 22] },
+                    { title: "Управление", registers: [213, 214, 215, 216, 217, 218, 219] },
+                    { title: "КА", registers: [188, 189, 190, 193, 194] },
+                    { title: "АПВ/АВР", registers: [205, 207, 208, 209, 210, 211, 212] },
+                    { title: "Конфигурация", registers: [220, 221, 222, 223, 224, 225, 226, 227, 228, 229] },
+                    { title: "Диагностика", registers: [199, 200, 201, 202, 203, 204] },
+                    { title: "Сервис", registers: [252, 253, 254] }
                 ]
             },
             info: {
                 title: "Информация",
-                sections: [
+                groups: [
                     { title: "Изделие", registers: [10, 11] },
-                    { title: "RTC", registers: [16, 17, 18, 19, 20, 21, 22] },
-                    { title: "Диагностика", registers: [13, 14, 15, 199, 200, 201, 202, 203, 204] }
+                    { title: "Состояние", registers: [12, 13, 14, 15] },
+                    { title: "Статистика", registers: [76, 77, 78, 79, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114] }
                 ]
             },
             all: {
                 title: "Все параметры",
-                sections: [
+                groups: [
                     { title: "Все регистры", registers: registerTable.map(item => item.id) }
                 ]
             }
         };
 
-        // State management
         let currentTab = 'dashboard';
-        let refreshInterval = null;
-        const loadingRegisters = new Set();
+        let currentRegister = null;
+        let valuesCache = new Map();
+        let refreshTimer = null;
 
-        // DOM Elements
-        const navItems = document.querySelectorAll('.nav-item');
         const contentArea = document.getElementById('content-area');
-        const pageTitle = document.getElementById('page-title');
-        const refreshAllBtn = document.getElementById('refresh-all');
-        const btnRefresh = document.getElementById('btn-refresh');
-        const modalOverlay = document.getElementById('modal-overlay');
-        const modalClose = document.getElementById('modal-close');
-        const modalTitle = document.getElementById('modal-title');
-        const modalContent = document.getElementById('modal-content');
-        const btnImport = document.getElementById('btn-import');
-        const btnExport = document.getElementById('btn-export');
+        const navItems = document.querySelectorAll('.nav-item');
+        const editModal = document.getElementById('editModal');
+        const infoModal = document.getElementById('infoModal');
+        const alertsContainer = document.getElementById('alerts');
         const importFile = document.getElementById('import-file');
 
-        // Format value based on register format
-        function formatValue(raw, format, scale) {
-            if (raw === undefined || raw === null) return '--';
-            const scaleFactor = Math.pow(10, scale);
+        function formatValue(value, format, scale) {
+            if (value === undefined || value === null) return '--';
+            const numValue = Number(value);
+            if (isNaN(numValue)) return '--';
             switch(format) {
-                case 'HEX': return `0x${raw.toString(16).toUpperCase().padStart(4, '0')}`;
-                case 'OCT': return `0o${raw.toString(8)}`;
-                case 'BIN': return `0b${raw.toString(2).padStart(16, '0')}`;
-                case 'SDC': return (raw / scaleFactor).toFixed(scale);
-                case 'SWT': return raw ? 'ВКЛ' : 'ВЫКЛ';
-                case 'REL': return (raw / scaleFactor).toFixed(scale);
-                default: return (raw / scaleFactor).toFixed(scale);
+                case 'HEX': return '0x' + numValue.toString(16).toUpperCase().padStart(4, '0');
+                case 'OCT': return '0o' + numValue.toString(8);
+                case 'BIN': return '0b' + numValue.toString(2).padStart(16, '0');
+                case 'SDC':
+                case 'REL':
+                    return (numValue / Math.pow(10, scale)).toFixed(scale);
+                case 'SWT':
+                    return numValue ? 'ВКЛ' : 'ВЫКЛ';
+                default:
+                    return (numValue / Math.pow(10, scale)).toFixed(scale);
             }
         }
 
-        function parseValue(text, format, scale) {
-            const trimmed = text.trim();
+        function parseValue(value, format, scale) {
+            const trimmed = value.trim();
             const scaleFactor = Math.pow(10, scale);
             switch(format) {
                 case 'HEX': return parseInt(trimmed.replace(/^0x/i, ''), 16);
@@ -1251,297 +1181,197 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
                 case 'BIN': return parseInt(trimmed.replace(/^0b/i, ''), 2);
                 case 'SWT': return ['1', 'вкл', 'true', 'on', 'да'].includes(trimmed.toLowerCase()) ? 1 : 0;
                 case 'SDC':
-                case 'REL': return Math.round(parseFloat(trimmed) * scaleFactor);
-                default: return Math.round(parseFloat(trimmed) * scaleFactor);
+                case 'REL':
+                default:
+                    return Math.round(parseFloat(trimmed) * scaleFactor);
             }
         }
 
-        // Get value indicator class
-        function getValueIndicator(value, regId) {
-            if (value === undefined) return '';
-            if (regId >= 28 && regId <= 31 && value > 0) return 'value-critical';
-            if (value > 1000) return 'value-warning';
-            return 'value-normal';
-        }
-
-        // Create register card
         function createRegisterCard(regId) {
             const reg = registerIndex.get(regId);
             if (!reg) return '';
-
+            const isEditable = CONFIG.editableRegisters.includes(regId);
+            const cachedValue = valuesCache.get(regId);
+            const unit = reg.unit || '';
             return `
-                <div class="register-card" data-reg-id="${regId}">
+                <div class="register-card" data-reg-id="${regId}" onclick="${isEditable ? 'openEditModal(' + regId + ')' : 'openInfoModal(' + regId + ')'}">
                     <div class="card-header">
                         <div class="register-name">${reg.name}</div>
                         <div class="register-id">#${reg.id}</div>
                     </div>
-                    
-                    <div class="value-display" id="value-${regId}">
-                        <span class="loading-value">
-                            <div class="loader"></div>
-                        </span>
+                    <div class="value-row">
+                        <div class="value-display" id="value-${regId}">
+                            ${cachedValue !== undefined ? formatValue(cachedValue, reg.format, reg.scale) : '<span class="loading"><div class="spinner"></div></span>'}
+                        </div>
+                        <div class="value-unit">${unit}</div>
                     </div>
-                    
                     <div class="card-footer">
-                        <div class="format-badge">
-                            ${reg.format} | масштаб: ${reg.scale}
+                        <div class="register-format">${reg.format}</div>
+                        <div class="register-status">
+                            <div class="status-dot small" style="background:${cachedValue !== undefined ? '#4caf50' : '#ff9800'}"></div>
+                            <span>${cachedValue !== undefined ? 'акт.' : 'загр.'}</span>
                         </div>
-                        <div class="value-indicator ${getValueIndicator(null, regId)}" id="indicator-${regId}">
-                            ожидание...
-                        </div>
-                    </div>
-                    
-                    <div class="edit-form" style="display: none;" id="edit-form-${regId}">
-                        <input type="text" class="edit-input" placeholder="Новое значение" id="edit-input-${regId}">
-                        <button class="edit-btn" onclick="saveRegister(${regId})">
-                            <i class="fas fa-check"></i> Применить
-                        </button>
-                        <button class="edit-btn" style="background: var(--danger);" onclick="cancelEdit(${regId})">
-                            <i class="fas fa-times"></i> Отмена
-                        </button>
-                    </div>
-                    
-                    <div style="margin-top: 15px; display: flex; gap: 10px;">
-                        <button class="action-btn" style="flex: 1;" onclick="toggleEdit(${regId})">
-                            <i class="fas fa-edit"></i> Изменить
-                        </button>
-                        <button class="action-btn" style="flex: 1;" onclick="showRegisterDetails(${regId})">
-                            <i class="fas fa-info-circle"></i> Подробнее
-                        </button>
                     </div>
                 </div>
             `;
         }
 
-        // Load tab content
-        function loadTabContent(tabId) {
-            const tab = menuStructure[tabId];
+        function loadTab(tabId) {
+            const tab = tabContent[tabId];
             if (!tab) return;
-
             currentTab = tabId;
-            pageTitle.textContent = tab.title;
-
             let html = '';
-            tab.sections.forEach(section => {
-                html += `
-                    <div style="margin-bottom: 40px;">
-                        <h3 style="margin-bottom: 20px; color: var(--primary-dark); display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-folder-open"></i>
-                            ${section.title}
-                        </h3>
-                        <div class="register-grid">
-                            ${section.registers.map(regId => createRegisterCard(regId)).join('')}
-                        </div>
-                    </div>
-                `;
+            tab.groups.forEach(group => {
+                html += `<div class="section-title">${group.title}</div>`;
+                html += '<div class="register-grid">';
+                group.registers.forEach(regId => {
+                    html += createRegisterCard(regId);
+                });
+                html += '</div>';
             });
-
             contentArea.innerHTML = html;
+            navItems.forEach(item => {
+                item.classList.toggle('active', item.dataset.tab === tabId);
+            });
             refreshTabValues();
         }
 
-        // Refresh values for current tab
         async function refreshTabValues() {
-            const tab = menuStructure[currentTab];
+            const tab = tabContent[currentTab];
             if (!tab) return;
-            const regIds = tab.sections.flatMap(section => section.registers);
+            const regIds = [];
+            tab.groups.forEach(group => regIds.push(...group.registers));
             for (const regId of regIds) {
                 await updateRegisterValue(regId);
             }
         }
 
-        // Update single register value
         async function updateRegisterValue(regId) {
-            if (loadingRegisters.has(regId)) return;
-            loadingRegisters.add(regId);
-            const valueElement = document.getElementById(`value-${regId}`);
-            const indicatorElement = document.getElementById(`indicator-${regId}`);
-            if (valueElement) {
-                valueElement.innerHTML = '<div class="loader"></div>';
-            }
-
             try {
                 const response = await fetch(`/api/read?reg=${regId}`);
                 const data = await response.json();
-                
                 if (data.ok) {
+                    valuesCache.set(regId, data.value);
                     const reg = registerIndex.get(regId);
-                    const formattedValue = formatValue(data.value, reg?.format || 'DEC', reg?.scale || 0);
-                    
+                    const valueElement = document.getElementById(`value-${regId}`);
                     if (valueElement) {
-                        valueElement.innerHTML = `
-                            <span style="font-size: 32px; font-weight: 700;">${formattedValue}</span>
-                            ${reg?.format === 'SWT' ? '' : '<span class="unit">ед.</span>'}
-                        `;
-                    }
-                    
-                    if (indicatorElement) {
-                        indicatorElement.className = `value-indicator ${getValueIndicator(data.value, regId)}`;
-                        indicatorElement.textContent = 'актуально';
-                    }
-                } else {
-                    if (valueElement) valueElement.innerHTML = '<span style="color: var(--danger);">Ошибка</span>';
-                    if (indicatorElement) {
-                        indicatorElement.className = 'value-indicator value-critical';
-                        indicatorElement.textContent = 'ошибка';
+                        valueElement.textContent = formatValue(data.value, reg?.format || 'DEC', reg?.scale || 0);
+                        const card = valueElement.closest('.register-card');
+                        if (card) {
+                            const statusDot = card.querySelector('.status-dot.small');
+                            if (statusDot) {
+                                statusDot.style.background = '#4caf50';
+                                statusDot.parentElement.querySelector('span').textContent = 'акт.';
+                            }
+                        }
                     }
                 }
             } catch (error) {
-                console.error('Error reading register:', error);
-                if (valueElement) valueElement.innerHTML = '<span style="color: var(--danger);">Ошибка</span>';
-                if (indicatorElement) {
-                    indicatorElement.className = 'value-indicator value-critical';
-                    indicatorElement.textContent = 'ошибка сети';
-                }
-            } finally {
-                loadingRegisters.delete(regId);
+                console.error(`Network error for register ${regId}:`, error);
             }
         }
 
-        // Toggle edit mode
-        function toggleEdit(regId) {
-            const editForm = document.getElementById(`edit-form-${regId}`);
-            const currentValue = document.getElementById(`value-${regId}`).textContent;
-            const input = document.getElementById(`edit-input-${regId}`);
-            editForm.style.display = editForm.style.display === 'none' ? 'flex' : 'none';
-            if (input) {
-                input.value = currentValue.replace('ед.', '').trim();
-                input.focus();
-            }
-        }
-
-        function cancelEdit(regId) {
-            document.getElementById(`edit-form-${regId}`).style.display = 'none';
-        }
-
-        async function saveRegister(regId) {
-            const input = document.getElementById(`edit-input-${regId}`);
-            const value = input.value.trim();
+        function openEditModal(regId) {
             const reg = registerIndex.get(regId);
-            if (!reg || !value) return;
+            if (!reg || !CONFIG.editableRegisters.includes(regId)) return;
+            currentRegister = regId;
+            const currentVal = valuesCache.get(regId);
+            document.getElementById('modalTitle').textContent = reg.name;
+            document.getElementById('currentValue').textContent = formatValue(currentVal, reg.format, reg.scale) + (reg.unit ? ' ' + reg.unit : '');
+            document.getElementById('newValueLabel').textContent = `Новое значение (${reg.unit || '-'})`;
+            document.getElementById('newValue').value = currentVal !== undefined ? (currentVal / Math.pow(10, reg.scale)) : '';
+            editModal.classList.add('active');
+            document.getElementById('newValue').focus();
+        }
 
+        function openInfoModal(regId) {
+            const reg = registerIndex.get(regId);
+            if (!reg) return;
+            const currentVal = valuesCache.get(regId);
+            document.getElementById('infoName').textContent = reg.name;
+            document.getElementById('infoId').textContent = '#' + reg.id;
+            document.getElementById('infoFormat').textContent = reg.format;
+            document.getElementById('infoScale').textContent = reg.scale;
+            document.getElementById('infoValue').textContent = formatValue(currentVal, reg.format, reg.scale) + (reg.unit ? ' ' + reg.unit : '');
+            infoModal.classList.add('active');
+        }
+
+        async function saveEditedValue() {
+            if (!currentRegister) return;
+            const input = document.getElementById('newValue');
+            const value = input.value.trim();
+            const reg = registerIndex.get(currentRegister);
+            if (!reg || !value) return;
             try {
-                const rawValue = parseValue(value, reg.format, reg.scale);
-                const response = await fetch(`/api/write?reg=${regId}&val=${rawValue}`, { method: 'POST' });
+                const scaledValue = parseValue(value, reg.format, reg.scale);
+                const response = await fetch(`/api/write?reg=${currentRegister}&val=${scaledValue}`, { method: 'POST' });
                 const result = await response.json();
                 if (result.ok) {
-                    showAlert('Значение успешно обновлено', 'success');
-                    updateRegisterValue(regId);
-                    cancelEdit(regId);
+                    showAlert('Значение сохранено', 'success');
+                    valuesCache.set(currentRegister, scaledValue);
+                    const valueElement = document.getElementById(`value-${currentRegister}`);
+                    if (valueElement) {
+                        valueElement.textContent = formatValue(scaledValue, reg.format, reg.scale);
+                    }
+                    closeEditModal();
                 } else {
-                    showAlert('Ошибка при записи значения', 'error');
+                    showAlert('Ошибка сохранения', 'error');
                 }
             } catch (error) {
-                console.error('Error writing register:', error);
+                console.error('Error saving value:', error);
                 showAlert('Ошибка сети', 'error');
             }
         }
 
-        async function showRegisterDetails(regId) {
-            const reg = registerIndex.get(regId);
-            if (!reg) return;
-
-            try {
-                const response = await fetch(`/api/read?reg=${regId}`);
-                const data = await response.json();
-                
-                modalTitle.textContent = reg.name;
-                modalContent.innerHTML = `
-                    <div style="padding: 20px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                            <div style="background: var(--gray); padding: 15px; border-radius: 10px;">
-                                <div style="color: var(--text-light); font-size: 12px;">ID регистра</div>
-                                <div style="font-size: 24px; font-weight: 700; color: var(--primary);">#${reg.id}</div>
-                            </div>
-                            <div style="background: var(--gray); padding: 15px; border-radius: 10px;">
-                                <div style="color: var(--text-light); font-size: 12px;">Формат</div>
-                                <div style="font-size: 18px; font-weight: 600;">${reg.format}</div>
-                            </div>
-                        </div>
-                        
-                        <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-                            <div style="font-size: 12px; opacity: 0.9;">Текущее значение</div>
-                            <div style="font-size: 48px; font-weight: 800; margin: 10px 0;">
-                                ${formatValue(data.value, reg.format, reg.scale)}
-                            </div>
-                            <div style="font-size: 14px; opacity: 0.9;">масштаб: ${reg.scale}</div>
-                        </div>
-                        
-                        <div style="background: var(--gray); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                            <div style="color: var(--text-light); font-size: 12px;">Описание</div>
-                            <div style="margin-top: 5px;">${reg.name}</div>
-                        </div>
-                        
-                        <div style="display: flex; gap: 10px;">
-                            <button class="action-btn primary" style="flex: 1;" onclick="toggleEdit(${regId}); modalOverlay.classList.remove('active');">
-                                <i class="fas fa-edit"></i> Изменить значение
-                            </button>
-                            <button class="action-btn" style="flex: 1;" onclick="modalOverlay.classList.remove('active');">
-                                <i class="fas fa-times"></i> Закрыть
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                modalOverlay.classList.add('active');
-            } catch (error) {
-                console.error('Error loading register details:', error);
-                showAlert('Ошибка при загрузке данных', 'error');
-            }
+        function closeEditModal() {
+            editModal.classList.remove('active');
+            currentRegister = null;
         }
 
-        function showAlert(message, type = 'info') {
-            const container = document.getElementById('alerts-container');
-            const alertId = 'alert-' + Date.now();
+        function closeInfoModal() {
+            infoModal.classList.remove('active');
+        }
+
+        function showAlert(message, type) {
             const alert = document.createElement('div');
             alert.className = `alert ${type}`;
-            alert.id = alertId;
             alert.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
                 <span>${message}</span>
-                <button onclick="document.getElementById('${alertId}').remove()" style="margin-left: auto; background: none; border: none; color: inherit; cursor: pointer;">
+                <button onclick="this.parentElement.remove()" style="margin-left: auto; background: none; border: none; color: inherit;">
                     <i class="fas fa-times"></i>
                 </button>
             `;
-            container.appendChild(alert);
+            alertsContainer.appendChild(alert);
             setTimeout(() => {
-                if (document.getElementById(alertId)) {
-                    document.getElementById(alertId).remove();
+                if (alert.parentElement) {
+                    alert.remove();
                 }
-            }, 5000);
+            }, 3000);
         }
 
-        async function updateSystemStats() {
-            try {
-                const uptimeResponse = await fetch('/api/read?reg=96');
-                const uptimeData = await uptimeResponse.json();
-                if (uptimeData.ok) {
-                    const hours = Math.floor(uptimeData.value / 3600);
-                    const minutes = Math.floor((uptimeData.value % 3600) / 60);
-                    const seconds = uptimeData.value % 60;
-                    document.getElementById('uptime').textContent = 
-                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                }
+        function refreshAll() {
+            showAlert('Обновление данных...', 'success');
+            refreshTabValues();
+        }
 
-                const tempResponse = await fetch('/api/read?reg=32');
-                const tempData = await tempResponse.json();
-                if (tempData.ok) {
-                    document.getElementById('temperature').textContent = 
-                        `${(tempData.value / 10).toFixed(1)}°C`;
-                }
-
-                const alarmResponse = await fetch('/api/read?reg=77');
-                const alarmData = await alarmResponse.json();
-                if (alarmData.ok) {
-                    document.getElementById('alarm-count').textContent = alarmData.value;
-                }
-            } catch (error) {
-                console.error('Error updating stats:', error);
-            }
+        function saveSettings() {
+            fetch('/api/write?reg=0&val=1')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        showAlert('Настройки сохранены', 'success');
+                    } else {
+                        showAlert('Ошибка сохранения', 'error');
+                    }
+                })
+                .catch(() => {
+                    showAlert('Ошибка сети', 'error');
+                });
         }
 
         async function exportSettings() {
-            showAlert('Экспорт настроек...', 'info');
+            showAlert('Экспорт настроек...', 'success');
             const data = {};
             for (const reg of registerTable) {
                 try {
@@ -1551,7 +1381,7 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
                         data[reg.id] = payload.value;
                     }
                 } catch (error) {
-                    console.error('Export error for reg', reg.id, error);
+                    console.error('Export error', reg.id, error);
                 }
             }
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1563,7 +1393,7 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            showAlert('Экспорт настроек завершен', 'success');
+            showAlert('Экспорт завершен', 'success');
         }
 
         async function importSettings(file) {
@@ -1574,65 +1404,52 @@ const char MAIN_HTML[] PROGMEM = R"rawliteral(
                 for (const [regId, value] of entries) {
                     await fetch(`/api/write?reg=${regId}&val=${value}`, { method: 'POST' });
                 }
-                showAlert('Импорт настроек завершен', 'success');
+                showAlert('Импорт завершен', 'success');
                 refreshTabValues();
             } catch (error) {
                 console.error('Import error', error);
-                showAlert('Ошибка импорта настроек', 'error');
+                showAlert('Ошибка импорта', 'error');
             }
         }
 
         function init() {
-            loadTabContent('dashboard');
-
+            loadTab('dashboard');
             navItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    navItems.forEach(nav => nav.classList.remove('active'));
-                    item.classList.add('active');
-                    loadTabContent(item.dataset.tab);
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadTab(item.dataset.tab);
                 });
             });
-
-            refreshAllBtn.addEventListener('click', refreshTabValues);
-            btnRefresh.addEventListener('click', refreshTabValues);
-
-            modalClose.addEventListener('click', () => {
-                modalOverlay.classList.remove('active');
+            document.getElementById('btn-refresh').addEventListener('click', refreshAll);
+            document.getElementById('btn-save').addEventListener('click', saveSettings);
+            document.getElementById('btn-scan').addEventListener('click', () => {
+                showAlert('Сканирование начато...', 'success');
             });
-
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) {
-                    modalOverlay.classList.remove('active');
-                }
-            });
-
-            document.getElementById('btn-save').addEventListener('click', () => {
-                fetch('/api/write?reg=0&val=1')
-                    .then(() => showAlert('Настройки сохранены', 'success'));
-            });
-
-            document.getElementById('btn-reset').addEventListener('click', () => {
-                if (confirm('Вы уверены, что хотите выполнить сброс устройства?')) {
-                    fetch('/api/write?reg=0&val=2')
-                        .then(() => showAlert('Устройство сброшено', 'warning'));
-                }
-            });
-
-            btnExport.addEventListener('click', exportSettings);
-            btnImport.addEventListener('click', () => importFile.click());
+            document.getElementById('btn-export').addEventListener('click', exportSettings);
+            document.getElementById('btn-import').addEventListener('click', () => importFile.click());
             importFile.addEventListener('change', () => {
                 if (importFile.files.length) {
                     importSettings(importFile.files[0]);
                     importFile.value = '';
                 }
             });
-
-            refreshInterval = setInterval(() => {
-                refreshTabValues();
-                updateSystemStats();
-            }, 3000);
-
-            updateSystemStats();
+            document.getElementById('modalClose').addEventListener('click', closeEditModal);
+            document.getElementById('infoModalClose').addEventListener('click', closeInfoModal);
+            document.getElementById('btnCancel').addEventListener('click', closeEditModal);
+            document.getElementById('btnSave').addEventListener('click', saveEditedValue);
+            document.getElementById('newValue').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveEditedValue();
+                }
+            });
+            editModal.addEventListener('click', (e) => {
+                if (e.target === editModal) closeEditModal();
+            });
+            infoModal.addEventListener('click', (e) => {
+                if (e.target === infoModal) closeInfoModal();
+            });
+            refreshTimer = setInterval(refreshTabValues, CONFIG.refreshInterval);
+            refreshTabValues();
         }
 
         document.addEventListener('DOMContentLoaded', init);
