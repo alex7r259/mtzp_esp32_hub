@@ -138,57 +138,1383 @@ WebServer server(80);
 
 /* ================= HTML UI ================= */
 const char MAIN_HTML[] PROGMEM = R"rawliteral(
-<!DOCTYPE html><html><head>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<title>MTZP</title>
-<style>
-body{font-family:Arial;background:#111;color:#eee;margin:0;padding:20px}
-.card{background:#1e1e1e;padding:15px;border-radius:8px;margin-bottom:15px}
-input,button{padding:8px;font-size:16px;margin:5px 0;width:100%}
-button{background:#0a84ff;color:white;border:0;border-radius:5px}
-button[disabled]{background:#555}
-details{margin:6px 0}
-summary{cursor:pointer}
-.menu-item{margin:4px 0}
-.menu-link{cursor:pointer;text-decoration:underline;color:#9bd1ff}
-.menu-link:hover{color:#cfe8ff}
-.menu-meta{font-size:12px;color:#aaa}
-.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.tab{padding:6px 10px;border-radius:6px;background:#2a2a2a;cursor:pointer}
-.tab.active{background:#0a84ff}
-.menu-value{margin-left:6px;font-weight:bold}
-.menu-edit{display:flex;gap:6px;align-items:center;margin-top:4px}
-.menu-edit input{flex:1}
-</style></head>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Панель управления МТЗП-1200</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px 15px 0 0;
+            padding: 25px 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #4CAF50;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header h1 i {
+            color: #4CAF50;
+            font-size: 32px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-radius: 50px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .nav-tabs {
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            gap: 5px;
+            padding: 15px 30px;
+            border-bottom: 1px solid #dee2e6;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        
+        .nav-tab {
+            padding: 12px 25px;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #495057;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .nav-tab:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+        
+        .nav-tab.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #45a049;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
+        .content {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 0 0 15px 15px;
+            padding: 30px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            min-height: 600px;
+        }
+        
+        .page {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            color: #2c3e50;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title i {
+            color: #4CAF50;
+        }
+        
+        .parameter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .parameter {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+        
+        .parameter:hover {
+            background: #e9ecef;
+        }
+        
+        .parameter-label {
+            font-weight: 500;
+            color: #495057;
+            flex: 1;
+        }
+        
+        .parameter-value {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 18px;
+            min-width: 120px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .unit {
+            font-size: 14px;
+            color: #6c757d;
+            margin-left: 5px;
+            font-weight: normal;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-edit {
+            padding: 6px 12px;
+            background: #2196F3;
+            color: white;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+        
+        .btn-edit:hover {
+            background: #0b7dda;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlide 0.3s ease;
+        }
+        
+        @keyframes modalSlide {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            z-index: 100;
+        }
+        
+        .refresh-btn:hover {
+            transform: rotate(180deg) scale(1.1);
+            background: #45a049;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .table th, .table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%236c757d" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>') no-repeat 15px center;
+            background-size: 20px;
+            padding-left: 45px;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .nav-tabs {
+                padding: 10px;
+            }
+            
+            .nav-tab {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
 <body>
-<h2>MTZP Web Panel</h2>
-<div class=card>
-<h3>Меню устройства</h3>
-<div class=tabs id=menuTabs></div>
-<div id=menu></div>
-</div>
-<script>
-const registerTable = [
-  {"id":0,"name":"Регистр команд","format":"DEC","scale":0},
-  {"id":1,"name":"RS485 Адрес","format":"HEX","scale":0},
-  {"id":2,"name":"RS485 Скорость, kbps","format":"DEC","scale":1},
-  {"id":3,"name":"RS485 Таймаут, мсек","format":"DEC","scale":0},
-  {"id":4,"name":"Регистр пароля","format":"DEC","scale":0},
-  {"id":5,"name":"RS485 MODBUS (0=Slip/1=Modbus)","format":"DEC","scale":0},
-  {"id":6,"name":"RS485 Пак./сек.","format":"DEC","scale":0},
-  {"id":7,"name":"Регистр команд МПУ","format":"HEX","scale":0},
-  {"id":8,"name":"МПУ Таймаут, мсек","format":"DEC","scale":0},
-  {"id":9,"name":"МПУ Пак./сек.","format":"DEC","scale":0},
-  {"id":10,"name":"МТЗП-1200 номер","format":"DEC","scale":0},
-  {"id":11,"name":"Месяц изготовлен (Soft)","format":"DEC","scale":2},
-  {"id":12,"name":"Регистр состояния","format":"HEX","scale":0},
-  {"id":13,"name":"Циклов main, ед.","format":"DEC","scale":0},
-  {"id":14,"name":"Циклов АЦП, ед.","format":"DEC","scale":0},
-  {"id":15,"name":"Циклов Input, ед.","format":"DEC","scale":0},
-  {"id":16,"name":"RTC миллисекунды","format":"DEC","scale":0},
-  {"id":17,"name":"RTC секунды","format":"DEC","scale":0},
-  {"id":18,"name":"RTC минуты","format":"DEC","scale":0},
-  {"id":19,"name":"RTC часы","format":"DEC","scale":0},
+    <div class="container">
+        <!-- Заголовок -->
+        <div class="header">
+            <h1>
+                <i class="fas fa-bolt"></i>
+                Панель управления МТЗП-1200
+            </h1>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Устройство подключено</span>
+            </div>
+        </div>
+        
+        <!-- Навигация -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-page="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                Текущие параметры
+            </div>
+            <div class="nav-tab" data-page="protections">
+                <i class="fas fa-shield-alt"></i>
+                Уставки защит
+            </div>
+            <div class="nav-tab" data-page="signals">
+                <i class="fas fa-bell"></i>
+                Контроль сигналов
+            </div>
+            <div class="nav-tab" data-page="settings">
+                <i class="fas fa-cog"></i>
+                Настройки
+            </div>
+            <div class="nav-tab" data-page="logs">
+                <i class="fas fa-clipboard-list"></i>
+                Журнал событий
+            </div>
+            <div class="nav-tab" data-page="info">
+                <i class="fas fa-info-circle"></i>
+                Информация
+            </div>
+        </div>
+        
+        <!-- Контент -->
+        <div class="content">
+            <!-- Главная страница - Текущие параметры -->
+            <div class="page active" id="dashboard">
+                <h2><i class="fas fa-tachometer-alt"></i> Текущие параметры системы</h2>
+                <p class="subtitle">Мониторинг в реальном времени</p>
+                
+                <div class="card-grid">
+                    <!-- Фазные токи -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-bolt"></i>
+                                Фазные токи
+                            </div>
+                            <div class="last-update">Обновлено: <span class="time">--:--:--</span></div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Фаза A</span>
+                                <span class="parameter-value" data-reg="41">0<span class="unit">А</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Фаза B</span>
+                                <span class="parameter-value" data-reg="42">0<span class="unit">А</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Фаза C</span>
+                                <span class="parameter-value" data-reg="43">0<span class="unit">А</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Максимальный ток</span>
+                                <span class="parameter-value" data-reg="44">0<span class="unit">А</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Фазные напряжения -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-charging-station"></i>
+                                Фазные напряжения
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Фаза A</span>
+                                <span class="parameter-value" data-reg="33">0<span class="unit">В</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Фаза B</span>
+                                <span class="parameter-value" data-reg="34">0<span class="unit">В</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Фаза C</span>
+                                <span class="parameter-value" data-reg="35">0<span class="unit">В</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Линейное U</span>
+                                <span class="parameter-value" data-reg="64">0<span class="unit">В</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Мощность и энергия -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-chart-line"></i>
+                                Мощность и энергия
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Активная мощность</span>
+                                <span class="parameter-value" data-reg="57">0<span class="unit">кВт</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Полная мощность</span>
+                                <span class="parameter-value" data-reg="58">0<span class="unit">кВА</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Коэф. мощности</span>
+                                <span class="parameter-value" data-reg="59">0.00</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Активная энергия</span>
+                                <span class="parameter-value" data-reg="80">0<span class="unit">кВт·ч</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Изоляция и температура -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-thermometer-half"></i>
+                                Состояние системы
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Температура</span>
+                                <span class="parameter-value" data-reg="32">0<span class="unit">°C</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Сопр. изоляции (мин)</span>
+                                <span class="parameter-value" data-reg="52">0<span class="unit">кОм</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Оперативное питание</span>
+                                <span class="parameter-value" data-reg="63">0<span class="unit">В</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Ток нуля</span>
+                                <span class="parameter-value" data-reg="61">0<span class="unit">мА</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Статус защиты -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-shield-alt"></i>
+                                Статус защиты
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Аварии</span>
+                                <span class="parameter-value" data-reg="28">0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Неисправности</span>
+                                <span class="parameter-value" data-reg="30">0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Реле статус</span>
+                                <span class="parameter-value" data-reg="23">0x0</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="showProtections()">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Детали защиты
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Время наработки -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-clock"></i>
+                                Время наработки
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">КА (дни:часы)</span>
+                                <span class="parameter-value" data-reg="93">0:0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">КА (минуты:секунды)</span>
+                                <span class="parameter-value" data-reg="92">0:0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">МТЗП (дни:часы)</span>
+                                <span class="parameter-value" data-reg="97">0:0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">МТЗП (минуты:секунды)</span>
+                                <span class="parameter-value" data-reg="96">0:0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Уставки защит -->
+            <div class="page" id="protections">
+                <h2><i class="fas fa-shield-alt"></i> Уставки защит</h2>
+                <p class="subtitle">Настройка параметров защитных функций</p>
+                
+                <div class="search-box">
+                    <input type="text" class="search-input" placeholder="Поиск защит..." id="searchProtections">
+                </div>
+                
+                <div class="card-grid">
+                    <!-- МТЗ1 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-bolt"></i>
+                                МТЗ-1
+                            </div>
+                            <button class="btn-edit" onclick="editProtection(115)">
+                                <i class="fas fa-edit"></i> Настроить
+                            </button>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Состояние</span>
+                                <span class="parameter-value" data-reg="115">Выкл</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Уставка тока</span>
+                                <span class="parameter-value" data-reg="117">0<span class="unit">А</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Задержка</span>
+                                <span class="parameter-value" data-reg="118">0<span class="unit">мс</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- МТЗ2 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-bolt"></i>
+                                МТЗ-2
+                            </div>
+                            <button class="btn-edit" onclick="editProtection(122)">
+                                <i class="fas fa-edit"></i> Настроить
+                            </button>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Состояние</span>
+                                <span class="parameter-value" data-reg="122">Выкл</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Уставка тока</span>
+                                <span class="parameter-value" data-reg="124">0<span class="unit">А</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Задержка</span>
+                                <span class="parameter-value" data-reg="125">0<span class="unit">мс</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- БКИ -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-leaf"></i>
+                                БКИ
+                            </div>
+                            <button class="btn-edit" onclick="editProtection(159)">
+                                <i class="fas fa-edit"></i> Настроить
+                            </button>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Состояние</span>
+                                <span class="parameter-value" data-reg="159">Выкл</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Уставка R</span>
+                                <span class="parameter-value" data-reg="161">0<span class="unit">кОм</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Задержка</span>
+                                <span class="parameter-value" data-reg="162">0<span class="unit">мс</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- НЗЗ -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-sun"></i>
+                                НЗЗ
+                            </div>
+                            <button class="btn-edit" onclick="editProtection(164)">
+                                <i class="fas fa-edit"></i> Настроить
+                            </button>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Состояние</span>
+                                <span class="parameter-value" data-reg="164">Выкл</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Уставка I0</span>
+                                <span class="parameter-value" data-reg="166">0<span class="unit">мА</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Задержка</span>
+                                <span class="parameter-value" data-reg="168">0<span class="unit">мс</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ЗММН -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-chart-line"></i>
+                                ЗММН
+                            </div>
+                            <button class="btn-edit" onclick="editProtection(141)">
+                                <i class="fas fa-edit"></i> Настроить
+                            </button>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Состояние</span>
+                                <span class="parameter-value" data-reg="141">Выкл</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">U макс</span>
+                                <span class="parameter-value" data-reg="143">0<span class="unit">В</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">U мин</span>
+                                <span class="parameter-value" data-reg="145">0<span class="unit">В</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- АПВ/АВР -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-redo"></i>
+                                АПВ/АВР
+                            </div>
+                            <button class="btn-edit" onclick="editProtection(205)">
+                                <i class="fas fa-edit"></i> Настроить
+                            </button>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">АПВ</span>
+                                <span class="parameter-value" data-reg="205">Выкл</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">АВР</span>
+                                <span class="parameter-value" data-reg="210">Выкл</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="toggleAPV()">
+                                <i class="fas fa-power-off"></i>
+                                Вкл/Выкл АПВ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Контроль сигналов -->
+            <div class="page" id="signals">
+                <h2><i class="fas fa-bell"></i> Контроль сигналов</h2>
+                <p class="subtitle">Мониторинг входов и выходов системы</p>
+                
+                <div class="card-grid">
+                    <!-- Релейные выходы -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-plug"></i>
+                                Релейные выходы
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">К1 (Включение КА)</span>
+                                <span class="parameter-value" data-reg="23" data-bit="0">Выкл</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">К3 (Отключение КА)</span>
+                                <span class="parameter-value" data-reg="23" data-bit="2">Выкл</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">К8 (Авария)</span>
+                                <span class="parameter-value" data-reg="23" data-bit="7">Выкл</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="showRelaysDetails()">
+                                <i class="fas fa-list"></i>
+                                Все реле
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Внешние входы -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-sign-in-alt"></i>
+                                Внешние входы
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">ПДУ1</span>
+                                <span class="parameter-value" data-reg="24" data-bit="0">Нет</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">ПДУ2</span>
+                                <span class="parameter-value" data-reg="24" data-bit="3">Нет</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">ЛЗШ</span>
+                                <span class="parameter-value" data-reg="25" data-bit="3">Нет</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="showInputsDetails()">
+                                <i class="fas fa-list"></i>
+                                Все входы
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Внутренние входы -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-microchip"></i>
+                                Внутренние входы
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">РПО</span>
+                                <span class="parameter-value" data-reg="26" data-bit="0">Нет</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">РПВ</span>
+                                <span class="parameter-value" data-reg="26" data-bit="1">Нет</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Контроль БП</span>
+                                <span class="parameter-value" data-reg="26" data-bit="2">Нет</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Статус аварий -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Статус аварий
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Активные аварии</span>
+                                <span class="parameter-value" data-reg="28">0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Активные неиспр.</span>
+                                <span class="parameter-value" data-reg="30">0</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="showAlarmsDetails()">
+                                <i class="fas fa-search"></i>
+                                Детали
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Настройки -->
+            <div class="page" id="settings">
+                <h2><i class="fas fa-cog"></i> Настройки системы</h2>
+                <p class="subtitle">Конфигурация параметров устройства</p>
+                
+                <div class="card-grid">
+                    <!-- Общие настройки -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-sliders-h"></i>
+                                Общие настройки
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Обновление данных</span>
+                                <span class="parameter-value" data-reg="252">2000<span class="unit">мс</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Пакетов в секунду</span>
+                                <span class="parameter-value" data-reg="6">10</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Таймаут RS485</span>
+                                <span class="parameter-value" data-reg="3">300<span class="unit">мс</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- RS485 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-network-wired"></i>
+                                Интерфейс RS485
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Адрес устройства</span>
+                                <span class="parameter-value" data-reg="1">1</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Скорость</span>
+                                <span class="parameter-value" data-reg="2">19200<span class="unit">бод</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Протокол</span>
+                                <span class="parameter-value" data-reg="5">SLIP</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Управление -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-gamepad"></i>
+                                Управление
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Режим управления</span>
+                                <span class="parameter-value" data-reg="213">Авто</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Время МПУ</span>
+                                <span class="parameter-value" data-reg="218">100<span class="unit">мс</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Время STOP</span>
+                                <span class="parameter-value" data-reg="219">500<span class="unit">мс</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- КА управление -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-power-off"></i>
+                                Управление КА
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Время реле ОТКЛ</span>
+                                <span class="parameter-value" data-reg="188">50<span class="unit">мс</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Время реле ВКЛ</span>
+                                <span class="parameter-value" data-reg="189">50<span class="unit">мс</span></span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Время ГОТОВ</span>
+                                <span class="parameter-value" data-reg="190">1000<span class="unit">мс</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Действия -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-tools"></i>
+                                Действия
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <button class="btn btn-primary" onclick="saveSettings()">
+                                <i class="fas fa-save"></i>
+                                Сохранить настройки
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadFactorySettings()">
+                                <i class="fas fa-undo"></i>
+                                Заводские настройки
+                            </button>
+                            <button class="btn btn-secondary" onclick="calibrateSensors()">
+                                <i class="fas fa-ruler"></i>
+                                Юстировка
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetCounters()">
+                                <i class="fas fa-trash-alt"></i>
+                                Обнулить счётчики
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Пароль -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-lock"></i>
+                                Безопасность
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Пароль</span>
+                                <span class="parameter-value">*****</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="changePassword()">
+                                <i class="fas fa-key"></i>
+                                Изменить пароль
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Журнал событий -->
+            <div class="page" id="logs">
+                <h2><i class="fas fa-clipboard-list"></i> Журнал событий</h2>
+                <p class="subtitle">История работы системы</p>
+                
+                <div class="card-grid">
+                    <!-- Статистика -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-chart-bar"></i>
+                                Статистика
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Всего аварий</span>
+                                <span class="parameter-value" data-reg="100">0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Всего неисправностей</span>
+                                <span class="parameter-value" data-reg="102">0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Коммутаций КА</span>
+                                <span class="parameter-value" data-reg="106">0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Вкл/Откл питания</span>
+                                <span class="parameter-value" data-reg="108">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Последние события -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-history"></i>
+                                Последние события
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Последняя авария</span>
+                                <span class="parameter-value" data-reg="101">Нет</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Последняя неисправность</span>
+                                <span class="parameter-value" data-reg="103">Нет</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="showLogDetails('alarms')">
+                                <i class="fas fa-list"></i>
+                                Аварии
+                            </button>
+                            <button class="btn btn-primary" onclick="showLogDetails('faults')">
+                                <i class="fas fa-list"></i>
+                                Неисправности
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Управление журналом -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-database"></i>
+                                Управление журналом
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <button class="btn btn-primary" onclick="clearLogs()">
+                                <i class="fas fa-trash"></i>
+                                Очистить журналы
+                            </button>
+                            <button class="btn btn-secondary" onclick="exportLogs()">
+                                <i class="fas fa-download"></i>
+                                Экспорт данных
+                            </button>
+                            <div class="parameter">
+                                <span class="parameter-label">Запись мощности</span>
+                                <span class="parameter-value" data-reg="114">60<span class="unit">сек</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Информация -->
+            <div class="page" id="info">
+                <h2><i class="fas fa-info-circle"></i> Информация об изделии</h2>
+                <p class="subtitle">Технические данные устройства</p>
+                
+                <div class="card-grid">
+                    <!-- Информация об устройстве -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-microchip"></i>
+                                Устройство
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Тип блока</span>
+                                <span class="parameter-value" data-reg="10">МТЗП-2T</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Серийный номер</span>
+                                <span class="parameter-value" data-reg="10">---</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Месяц выпуска</span>
+                                <span class="parameter-value" data-reg="11">---</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Версия ПО</span>
+                                <span class="parameter-value" data-reg="11">---</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Время и дата -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-clock"></i>
+                                Время и дата
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Время</span>
+                                <span class="parameter-value" data-reg="17">--:--:--</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Дата</span>
+                                <span class="parameter-value" data-reg="20">--.--.----</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="syncTime()">
+                                <i class="fas fa-sync"></i>
+                                Синхронизировать время
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Диагностика -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-stethoscope"></i>
+                                Диагностика
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">Циклов main</span>
+                                <span class="parameter-value" data-reg="13">0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Циклов АЦП</span>
+                                <span class="parameter-value" data-reg="14">0</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Циклов Input</span>
+                                <span class="parameter-value" data-reg="15">0</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="runDiagnostics()">
+                                <i class="fas fa-play"></i>
+                                Запустить диагностику
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Сеть -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fas fa-wifi"></i>
+                                Сеть
+                            </div>
+                        </div>
+                        <div class="parameter-group">
+                            <div class="parameter">
+                                <span class="parameter-label">WiFi точка доступа</span>
+                                <span class="parameter-value">MTZP</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">IP адрес</span>
+                                <span class="parameter-value">192.168.4.1</span>
+                            </div>
+                            <div class="parameter">
+                                <span class="parameter-label">Версия WebUI</span>
+                                <span class="parameter-value">2.0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Футер -->
+        <div class="footer">
+            <p>МТЗП-1200 Web Interface v2.0 • Обновлено: <span id="lastUpdateTime">--:--:--</span></p>
+        </div>
+    </div>
+    
+    <!-- Модальное окно редактирования -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">
+                    <i class="fas fa-edit"></i>
+                    Редактирование параметра
+                </h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" id="paramName">Параметр</label>
+                    <input type="text" class="form-input" id="paramValue" placeholder="Введите значение">
+                    <div class="form-help" id="paramHelp">Единицы измерения: --</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Текущее значение</label>
+                    <div class="current-value" id="currentValue">--</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                    Отмена
+                </button>
+                <button class="btn btn-primary" onclick="saveParam()">
+                    <i class="fas fa-save"></i>
+                    Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Кнопка обновления -->
+    <button class="refresh-btn" onclick="refreshAll()">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+    
+    <!-- Уведомление -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText">Действие выполнено успешно</span>
+    </div>
+
+    <script>
+        // Регистры и их метаданные
+		const registerTable = [
+		{"id":0,"name":"Регистр команд","format":"DEC","scale":0},
+		{"id":1,"name":"RS485 Адрес","format":"HEX","scale":0},
+		{"id":2,"name":"RS485 Скорость, kbps","format":"DEC","scale":1},
+		{"id":3,"name":"RS485 Таймаут, мсек","format":"DEC","scale":0},
+		{"id":4,"name":"Регистр пароля","format":"DEC","scale":0},
+		{"id":5,"name":"RS485 MODBUS (0=Slip/1=Modbus)","format":"DEC","scale":0},
+		{"id":6,"name":"RS485 Пак./сек.","format":"DEC","scale":0},
+		{"id":7,"name":"Регистр команд МПУ","format":"HEX","scale":0},
+		{"id":8,"name":"МПУ Таймаут, мсек","format":"DEC","scale":0},
+		{"id":9,"name":"МПУ Пак./сек.","format":"DEC","scale":0},
+		{"id":10,"name":"МТЗП-1200 номер","format":"DEC","scale":0},
+		{"id":11,"name":"Месяц изготовлен (Soft)","format":"DEC","scale":2},
+		{"id":12,"name":"Регистр состояния","format":"HEX","scale":0},
+		{"id":13,"name":"Циклов main, ед.","format":"DEC","scale":0},
+		{"id":14,"name":"Циклов АЦП, ед.","format":"DEC","scale":0},
+		{"id":15,"name":"Циклов Input, ед.","format":"DEC","scale":0},
+		{"id":16,"name":"RTC миллисекунды","format":"DEC","scale":0},
+		{"id":17,"name":"RTC секунды","format":"DEC","scale":0},
+		{"id":18,"name":"RTC минуты","format":"DEC","scale":0},
+		{"id":19,"name":"RTC часы","format":"DEC","scale":0},
   {"id":20,"name":"RTC дата","format":"DEC","scale":0},
   {"id":21,"name":"RTC месяц","format":"DEC","scale":0},
   {"id":22,"name":"RTC год","format":"DEC","scale":0},
@@ -446,851 +1772,376 @@ const registerTable = [
   {"id":274,"name":"ADC 15 (free)","format":"DEC","scale":0},
   {"id":275,"name":"Параметров FRAM","format":"DEC","scale":0},
   {"id":276,"name":"Параметров всего","format":"DEC","scale":0}
-];
-
-const registerIndex = new Map(registerTable.map(item => [item.id, item]));
-
-const menuTree = [
-  {
-    "label":"1. Текущие параметры",
-    "children":[
-      {
-        "label":"1.1. Фазные токи",
-        "children":[
-          {"label":"1.1.1. Ток фазы А, А","regId":41},
-          {"label":"1.1.2. Ток фазы В, А","regId":42},
-          {"label":"1.1.3. Ток фазы С, А","regId":43},
-          {"label":"1.1.4. Максимальный ток, А","regId":44},
-          {"label":"1.1.5. Минимальный ток, А","regId":45},
-          {"label":"1.1.6. Несимметрия тока ΔI, %","regId":46},
-          {"label":"1.1.7. Перегрузка, %","regId":48},
-          {"label":"1.1.8. К трансформации, ед.","regId":233},
-          {"label":"1.1.9. Порог несимметрии, А","regId":47}
-        ]
-      },
-      {
-        "label":"1.2. Фазные напряжения",
-        "children":[
-          {"label":"1.2.1. Напряжение фазы А, В","regId":33},
-          {"label":"1.2.2. Напряжение фазы В, В","regId":34},
-          {"label":"1.2.3. Напряжение фазы С, В","regId":35},
-          {"label":"1.2.4. Напряжение максимальное, В","regId":36},
-          {"label":"1.2.5. Напряжение минимальное, В","regId":37},
-          {"label":"1.2.6. Несимметрия напряжения ΔU, %","regId":38},
-          {"label":"1.2.7. Порог несимметрии, В","regId":39},
-          {"label":"1.2.8. Индикация линейного напряжения, да/нет","regId":40}
-        ]
-      },
-      {
-        "label":"1.3. Сопротивление изоляции",
-        "children":[
-          {"label":"1.3.1. Сопротивление фазы А, кОм","regId":49},
-          {"label":"1.3.2. Сопротивление фазы В, кОм","regId":50},
-          {"label":"1.3.3. Сопротивление фазы С, кОм","regId":51},
-          {"label":"1.3.4. Сопротивление минимальное, кОм","regId":52},
-          {"label":"1.3.5. Параллельная нагрузка, да/нет","regId":53}
-        ]
-      },
-      {
-        "label":"1.4. Потребляемая мощность",
-        "children":[
-          {"label":"1.4.1. Мощность фазы А, кВт","regId":54},
-          {"label":"1.4.2. Мощность фазы В, кВт","regId":55},
-          {"label":"1.4.3. Мощность фазы С, кВт","regId":56},
-          {"label":"1.4.4. Мощность активная, кВт","regId":57},
-          {"label":"1.4.5. Мощность полная, кВА","regId":58},
-          {"label":"1.4.6. Коэффициент мощности","regId":59},
-          {"label":"1.4.7. Энергия активная, кВт/ч","regId":80},
-          {"label":"1.4.8. Энергия активная, МВт/ч","regId":81},
-          {"label":"1.4.9. Энергия полная, кВт/ч","regId":82},
-          {"label":"1.4.10. Энергия полная, МВт/ч","regId":83}
-        ]
-      },
-      {
-        "label":"1.5. Линейное напряжение",
-        "children":[
-          {"label":"1.5.1. Оперативное питание, В","regId":63},
-          {"label":"1.5.2. Линейное напряжение, В","regId":64},
-          {"label":"1.5.3. Номинальное напряжение питания, В","regId":65},
-          {"label":"1.5.4. Номинальное напряжение линейное, В","regId":66}
-        ]
-      },
-      {
-        "label":"1.6. Время наработки",
-        "children":[
-          {"label":"1.6.1. Наработка КА, минуты и секунды","regId":92},
-          {"label":"1.6.2. Наработка КА, дни и часы","regId":93},
-          {"label":"1.6.3. Суммарная наработка КА, минуты и секунды","regId":94},
-          {"label":"1.6.4. Суммарная наработка КА, дни и часы","regId":95},
-          {"label":"1.6.5. Наработка МТЗП, минуты и секунды","regId":96},
-          {"label":"1.6.6. Наработка МТЗП, дни и часы","regId":97},
-          {"label":"1.6.7. Суммарная наработка МТЗП, минуты и секунды","regId":98},
-          {"label":"1.6.8. Суммарная наработка МТЗП, дни и часы","regId":99}
-        ]
-      },
-      {
-        "label":"1.7. Прочие параметры",
-        "children":[
-          {"label":"1.7.1. Температура в блоке БЗУ, ºС","regId":32},
-          {"label":"1.7.2. Напряжение нуля, В","regId":60},
-          {"label":"1.7.3. Ток нуля, мА","regId":61},
-          {"label":"1.7.4. Угол между током и напряжением нуля, º","regId":62},
-          {"label":"1.7.5. Пульсация максимального тока, %","regId":70},
-          {"label":"1.7.6. Ток пуска, А","regId":71},
-          {"label":"1.7.7. Напряжение пуска, В","regId":72},
-          {"label":"1.7.8. Время пуска, мС","regId":73},
-          {"label":"1.7.9. Порог измерения тока пуска, А","regId":74}
-        ]
-      },
-      {"label":"1.8. Ввод пароля","regId":4}
-    ]
-  },
-  {
-    "label":"2. Уставки защит",
-    "children":[
-      {
-        "label":"2.1. МТЗ – 1",
-        "children":[
-          {"label":"2.1.1.1. Защита введена, да/нет","regId":115},
-          {"label":"2.1.1.2. Максимальный ток, А","regId":44},
-          {"label":"2.1.1.3. Уставка по току, А","regId":117},
-          {"label":"2.1.1.4. Уставка по времени, мС","regId":118},
-          {"label":"2.1.1.5. Отключение КА, да/нет","regId":115},
-          {"label":"2.1.1.6. Фиксация, да/нет","regId":115},
-          {"label":"2.1.1.7. Вход ЛЗШ, да/нет","regId":115},
-          {"label":"2.1.1.8. Внешний вход, да/нет","regId":115},
-          {"label":"2.1.1.9. Порог Rmin, да/нет","regId":115},
-          {"label":"2.1.1.10. Уставка ЛЗШ по току, А","regId":119},
-          {"label":"2.1.1.11. Уставка ЛЗШ по времени, мС","regId":120},
-          {"label":"2.1.1.12. Выход ЛЗШ, да/нет","regId":115},
-          {"label":"2.1.1.13. Время ЛЗШ по выходу, мС","regId":121}
-        ]
-      },
-      {
-        "label":"2.1. МТЗ – 2",
-        "children":[
-          {"label":"2.1.2.1. Защита введена, да/нет","regId":122},
-          {"label":"2.1.2.2. Максимальный ток, А","regId":44},
-          {"label":"2.1.2.3. Уставка по току, А","regId":124},
-          {"label":"2.1.2.4. Уставка по времени, мС","regId":125},
-          {"label":"2.1.2.5. Отключение КА, да/нет","regId":122},
-          {"label":"2.1.2.6. Фиксация, да/нет","regId":122}
-        ]
-      },
-      {
-        "label":"2.1. МТЗ – 3",
-        "children":[
-          {"label":"2.1.3.1. Защита введена, да/нет","regId":126},
-          {"label":"2.1.3.2. Максимальный ток, А","regId":44},
-          {"label":"2.1.3.3. Уставка по току, А","regId":128},
-          {"label":"2.1.3.4. Уставка по времени, мС","regId":129},
-          {"label":"2.1.3.5. Тип характеристики","regId":130},
-          {"label":"2.1.3.6. Отключение КА, да/нет","regId":126},
-          {"label":"2.1.3.7. Фиксация, да/нет","regId":126}
-        ]
-      },
-      {
-        "label":"2.1. УМТЗ",
-        "children":[
-          {"label":"2.1.4.1. Защита введена, да/нет","regId":131},
-          {"label":"2.1.4.2. Максимальный ток, А","regId":44},
-          {"label":"2.1.4.3. Уставка по току, А","regId":133},
-          {"label":"2.1.4.4. Уставка по времени, мС","regId":134},
-          {"label":"2.1.4.5. Время работы, мС","regId":135},
-          {"label":"2.1.4.6. Отключение КА, да/нет","regId":131},
-          {"label":"2.1.4.7. Фиксация, да/нет","regId":131}
-        ]
-      },
-      {
-        "label":"2.2. ЗМТ",
-        "children":[
-          {"label":"2.2.1. Защита введена, да/нет","regId":136},
-          {"label":"2.2.2. Минимальный ток, А","regId":45},
-          {"label":"2.2.3. Уставка по току, А","regId":138},
-          {"label":"2.2.4. Уставка по времени, мС","regId":139},
-          {"label":"2.2.5. Время включения, мС","regId":140},
-          {"label":"2.2.6. Отключение КА, да/нет","regId":136},
-          {"label":"2.2.7. Фиксация, да/нет","regId":136}
-        ]
-      },
-      {
-        "label":"2.3. ЗММН",
-        "children":[
-          {
-            "label":"2.3.1. ЗММН максимум",
-            "children":[
-              {"label":"2.3.1.1. Защита введена, да/нет","regId":141},
-              {"label":"2.3.1.2. Линейное напряжение, В","regId":64},
-              {"label":"2.3.1.3. Уставка по напряжению, В","regId":143},
-              {"label":"2.3.1.4. Уставка по времени, мС","regId":144}
-            ]
-          },
-          {
-            "label":"2.3.2. ЗММН минимум",
-            "children":[
-              {"label":"2.3.2.1. Защита введена, да/нет","regId":141},
-              {"label":"2.3.2.2. Линейное напряжение, В","regId":64},
-              {"label":"2.3.2.3. Уставка по напряжению, В","regId":145},
-              {"label":"2.3.2.4. Уставка по времени, мС","regId":146}
-            ]
-          },
-          {
-            "label":"2.3.3. ЗММН Секция шин",
-            "children":[
-              {"label":"2.3.3.1. Линейное напряжение, В","regId":64},
-              {"label":"2.3.3.2. Уставка по напряжению, В","regId":147},
-              {"label":"2.3.3.3. Уставка по времени, мС","regId":148}
-            ]
-          },
-          {"label":"2.3.4. Отключение КА, да/нет","regId":141},
-          {"label":"2.3.5. Фиксация, да/нет","regId":141}
-        ]
-      },
-      {
-        "label":"2.4. ЗНФ",
-        "children":[
-          {"label":"2.4.1. Защита введена, да/нет","regId":149},
-          {"label":"2.4.2. Несимметрия по току ΔI, %","regId":46},
-          {"label":"2.4.3. Уставка по несимметрии, %","regId":151},
-          {"label":"2.4.4. Уставка по времени, мС","regId":152},
-          {"label":"2.4.5. Время включения, мС","regId":153},
-          {"label":"2.4.6. Отключение КА, да/нет","regId":149},
-          {"label":"2.4.7. Фиксация, да/нет","regId":149}
-        ]
-      },
-      {
-        "label":"2.5. ЗОФ",
-        "children":[
-          {"label":"2.5.1. Защита введена, да/нет","regId":154},
-          {"label":"2.5.2. Несимметрия по напряжению ΔU, %","regId":38},
-          {"label":"2.5.3. Уставка по несимметрии, %","regId":156},
-          {"label":"2.5.4. Уставка по времени, мС","regId":157},
-          {"label":"2.5.5. Время включения, мС","regId":158},
-          {"label":"2.5.6. Отключение КА, да/нет","regId":154},
-          {"label":"2.5.7. Фиксация, да/нет","regId":154}
-        ]
-      },
-      {
-        "label":"2.6. БКИ",
-        "children":[
-          {"label":"2.6.1. Защита введена, да/нет","regId":159},
-          {"label":"2.6.2. Минимальное R изоляции, кОм","regId":52},
-          {"label":"2.6.3. Уставка по сопротивлению, кОм","regId":161},
-          {"label":"2.6.4. Уставка по времени, мС","regId":162},
-          {"label":"2.6.5. Время включения, мС","regId":163},
-          {"label":"2.6.6. Фиксация, да/нет","regId":159},
-          {"label":"2.6.7. Предварительная защита введена, да/нет","regId":159},
-          {"label":"2.6.8. Предварительная фиксация, да/нет","regId":159}
-        ]
-      },
-      {
-        "label":"2.7. НЗЗ",
-        "children":[
-          {"label":"2.7.1. Защита введена, да/нет","regId":164},
-          {"label":"2.7.2. Канал по току введен, да/нет","regId":164},
-          {"label":"2.7.3. Канал по напряжению введен, да/нет","regId":164},
-          {"label":"2.7.4. Канал по углу введен, да/нет","regId":164},
-          {"label":"2.7.5. Напряжение нуля, В","regId":60},
-          {"label":"2.7.6. Ток нуля, мА","regId":61},
-          {"label":"2.7.7. Угол между током и напряжением нуля, º","regId":62},
-          {"label":"2.7.8. Уставка по току, мА","regId":166},
-          {"label":"2.7.9. Уставка по напряжению, В","regId":167},
-          {"label":"2.7.10. Уставка по времени, мС","regId":168},
-          {"label":"2.7.11. Угол минимальный, º","regId":169},
-          {"label":"2.7.12. Угол максимальный, º","regId":170},
-          {"label":"2.7.13. Отключение КА, да/нет","regId":164},
-          {"label":"2.7.14. Фиксация, да/нет","regId":164}
-        ]
-      },
-      {
-        "label":"2.8. Внешние защиты",
-        "children":[
-          {
-            "label":"2.8.1. Внешняя защита – 1",
-            "children":[
-              {"label":"2.8.1.1. Защита введена, да/нет","regId":171},
-              {"label":"2.8.1.2. Уставка по времени, мС","regId":174},
-              {"label":"2.8.1.3. Отключение КА, да/нет","regId":171},
-              {"label":"2.8.1.4. Фиксация, да/нет","regId":171},
-              {"label":"2.8.1.5. Порог Rmin, да/нет","regId":171}
-            ]
-          },
-          {
-            "label":"2.8.2. Внешняя защита - 2",
-            "children":[
-              {"label":"2.8.2.1. Защита введена, да/нет","regId":171},
-              {"label":"2.8.2.2. Уставка по времени, мС","regId":175},
-              {"label":"2.8.2.3. Отключение КА, да/нет","regId":171},
-              {"label":"2.8.2.4. Фиксация, да/нет","regId":171},
-              {"label":"2.8.2.5. Порог Rmin, да/нет","regId":171}
-            ]
-          },
-          {
-            "label":"2.8.3. Внешняя защита - 3",
-            "children":[
-              {"label":"2.8.3.1. Защита введена, да/нет","regId":171},
-              {"label":"2.8.3.2. Уставка по времени, мС","regId":176},
-              {"label":"2.8.3.3. Отключение КА, да/нет","regId":171},
-              {"label":"2.8.3.4. Фиксация, да/нет","regId":171},
-              {"label":"2.8.3.5. Порог Rmin, да/нет","regId":171}
-            ]
-          },
-          {
-            "label":"2.8.4. Внешняя защита - 4",
-            "children":[
-              {"label":"2.8.4.1. Защита введена, да/нет","regId":171},
-              {"label":"2.8.4.2. Уставка по времени, мС","regId":177},
-              {"label":"2.8.4.3. Отключение КА, да/нет","regId":171},
-              {"label":"2.8.4.4. Фиксация, да/нет","regId":171},
-              {"label":"2.8.4.5. Порог Rmin, да/нет","regId":171}
-            ]
-          },
-          {
-            "label":"2.8.5. Защита по замыканию",
-            "children":[
-              {"label":"2.8.5.1. Защита введена, да/нет","regId":172},
-              {"label":"2.8.5.2. Уставка по времени, мС","regId":178},
-              {"label":"2.8.5.3. Отключение КА, да/нет","regId":172},
-              {"label":"2.8.5.4. Фиксация, да/нет","regId":172},
-              {"label":"2.8.5.5. Учёт вход1 (ПДУ1), да/нет","regId":172},
-              {"label":"2.8.5.6. Учёт вход2 (ПДУ2), да/нет","regId":172},
-              {"label":"2.8.5.7. Учёт вход3 (EXT 1), да/нет","regId":172},
-              {"label":"2.8.5.8. Учёт вход4 (EXT 2), да/нет","regId":172},
-              {"label":"2.8.5.9. Учёт вход5 (EXT 3), да/нет","regId":172},
-              {"label":"2.8.5.10. Учёт вход6 (ЛЗШ), да/нет","regId":172},
-              {"label":"2.8.5.11. Учёт вход7 (EXT 4), да/нет","regId":172}
-            ]
-          }
-        ]
-      },
-      {
-        "label":"2.9. Местные защиты",
-        "children":[
-          {
-            "label":"2.9.1. Местная защита – 1",
-            "children":[
-              {"label":"2.9.1.1. Защита введена, да/нет","regId":179},
-              {"label":"2.9.1.2. Уставка по времени, мС","regId":181},
-              {"label":"2.9.1.3. Отключение КА, да/нет","regId":179},
-              {"label":"2.9.1.4. Фиксация, да/нет","regId":179},
-              {"label":"2.9.1.5. Инверсия, да/нет","regId":179}
-            ]
-          },
-          {
-            "label":"2.9.2. Местная защита - 2",
-            "children":[
-              {"label":"2.9.2.1. Защита введена, да/нет","regId":179},
-              {"label":"2.9.2.2. Уставка по времени, мС","regId":182},
-              {"label":"2.9.2.3. Отключение КА, да/нет","regId":179},
-              {"label":"2.9.2.4. Фиксация, да/нет","regId":179},
-              {"label":"2.9.2.5. Инверсия, да/нет","regId":179}
-            ]
-          },
-          {
-            "label":"2.9.3. Местная защита - 3",
-            "children":[
-              {"label":"2.9.3.1. Защита введена, да/нет","regId":179},
-              {"label":"2.9.3.2. Уставка по времени, мС","regId":183},
-              {"label":"2.9.3.3. Отключение КА, да/нет","regId":179},
-              {"label":"2.9.3.4. Фиксация, да/нет","regId":179},
-              {"label":"2.9.3.5. Инверсия, да/нет","regId":179}
-            ]
-          },
-          {
-            "label":"2.9.4. Местная защита - 4",
-            "children":[
-              {"label":"2.9.4.1. Защита введена, да/нет","regId":179},
-              {"label":"2.9.4.2. Уставка по времени, мС","regId":184},
-              {"label":"2.9.4.3. Отключение КА, да/нет","regId":179},
-              {"label":"2.9.4.4. Фиксация, да/нет","regId":179}
-            ]
-          }
-        ]
-      },
-      {
-        "label":"2.10. Контроль КА",
-        "children":[
-          {"label":"2.10.1. Защита введена, да/нет","regId":185},
-          {"label":"2.10.2. Уставка по времени, мС","regId":187},
-          {"label":"2.10.3. Фиксация, да/нет","regId":185}
-        ]
-      },
-      {
-        "label":"2.11. Защита УРОВ",
-        "children":[
-          {"label":"2.11.1. Защита введена, да/нет","regId":195},
-          {"label":"2.11.2. Максимальный ток, А","regId":44},
-          {"label":"2.11.3. Уставка по току, А","regId":197},
-          {"label":"2.11.4. Уставка по времени, мС","regId":198},
-          {"label":"2.11.5. Канал по току введен, да/нет","regId":195},
-          {"label":"2.11.6. Отключение КА, да/нет","regId":195},
-          {"label":"2.11.7. Фиксация, да/нет","regId":195},
-          {"label":"2.11.8. Учёт внешней защиты 1, да/нет","regId":195},
-          {"label":"2.11.9. Учёт внешней защиты 2, да/нет","regId":195},
-          {"label":"2.11.10. Учёт внешней защиты 3, да/нет","regId":195},
-          {"label":"2.11.11. Учёт внешней защиты 4, да/нет","regId":195},
-          {"label":"2.11.12. Учёт ЗММН минимум, да/нет","regId":195},
-          {"label":"2.11.13. Учёт ЗММН максимум, да/нет","regId":195},
-          {"label":"2.11.14. Учёт ЗОФ, да/нет","regId":195},
-          {"label":"2.11.15. Учёт ЗНФ, да/нет","regId":195},
-          {"label":"2.11.16. Учёт НЗЗ, да/нет","regId":195},
-          {"label":"2.11.17. Учёт ЗМТ, да/нет","regId":195}
-        ]
-      },
-      {"label":"2.12. Ввод пароля","regId":4}
-    ]
-  },
-  {
-    "label":"3. Контроль сигналов",
-    "children":[
-      {
-        "label":"3.1. Релейные выходы",
-        "children":[
-          {"label":"3.1.1. Реле К1 (Включение КА / Вперед), да/нет","regId":23},
-          {"label":"3.1.2. Реле К2 (Управление КН / Назад), да/нет","regId":23},
-          {"label":"3.1.3. Реле К3 (Отключение КА), да/нет","regId":23},
-          {"label":"3.1.4. Реле К4 (УРОВ), да/нет","regId":23},
-          {"label":"3.1.5. Реле К5 (Секция Шин), да/нет","regId":23},
-          {"label":"3.1.6. Реле К6 (Пуск МТЗ), да/нет","regId":23},
-          {"label":"3.1.7. Реле К7 (МТЗ - 1), да/нет","regId":23},
-          {"label":"3.1.8. Реле К8 (Авария), да/нет","regId":23},
-          {"label":"3.1.9. Реле К9 (Авария), да/нет","regId":23},
-          {"label":"3.1.10. Реле К10 (Положение КА), да/нет","regId":23},
-          {"label":"3.1.11. Реле К11 (УРОВ), да/нет","regId":23},
-          {"label":"3.1.12. Реле К12 (Пуск МТЗ), да/нет","regId":23}
-        ]
-      },
-      {
-        "label":"3.2. Внешние входы 1",
-        "children":[
-          {"label":"3.2.1. Внешний вход 1_бит0 (ПДУ1), да/нет","regId":24},
-          {"label":"3.2.2. Внешний вход 1_бит1 (ПДУ1), да/нет","regId":24},
-          {"label":"3.2.3. Внешний вход 1_бит2 (ПДУ1), да/нет","regId":24},
-          {"label":"3.2.4. Внешний вход 2_бит0 (ПДУ2), да/нет","regId":24},
-          {"label":"3.2.5. Внешний вход 2_бит1 (ПДУ2), да/нет","regId":24},
-          {"label":"3.2.6. Внешний вход 2_бит2 (ПДУ2), да/нет","regId":24},
-          {"label":"3.2.7. Внешний вход 3_бит0 (АГЗ), да/нет","regId":24},
-          {"label":"3.2.8. Внешний вход 3_бит1 (АГЗ), да/нет","regId":24},
-          {"label":"3.2.9. Внешний вход 3_бит2 (АГЗ), да/нет","regId":24},
-          {"label":"3.2.10. Внешний вход 4_бит0 (ВЗ-2), да/нет","regId":24},
-          {"label":"3.2.11. Внешний вход 4_бит1 (ВЗ-2), да/нет","regId":24},
-          {"label":"3.2.12. Внешний вход 4_бит2 (ВЗ-2), да/нет","regId":24}
-        ]
-      },
-      {
-        "label":"3.3. Внешние входы 2",
-        "children":[
-          {"label":"3.3.1. Внешний вход 5_бит0 (ВЗ-3), да/нет","regId":25},
-          {"label":"3.3.2. Внешний вход 5_бит1 (ВЗ-3), да/нет","regId":25},
-          {"label":"3.3.3. Внешний вход 5_бит2 (ВЗ-3), да/нет","regId":25},
-          {"label":"3.3.4. Внешний вход 6_бит0 (ЛЗШ), да/нет","regId":25},
-          {"label":"3.3.5. Внешний вход 6_бит1 (ЛЗШ), да/нет","regId":25},
-          {"label":"3.3.6. Внешний вход 6_бит2 (ЛЗШ), да/нет","regId":25},
-          {"label":"3.3.7. Внешний вход 7_бит0 (Терм), да/нет","regId":25},
-          {"label":"3.3.8. Внешний вход 7_бит1 (Терм), да/нет","regId":25},
-          {"label":"3.3.9. Внешний вход 7_бит2 (Терм), да/нет","regId":25}
-        ]
-      },
-      {
-        "label":"3.4. Внутренние входы",
-        "children":[
-          {"label":"3.4.1. Внутренний вход 1 (РПО), да/нет","regId":26},
-          {"label":"3.4.2. Внутренний вход 2 (РПВ), да/нет","regId":26},
-          {"label":"3.4.3. Внутренний вход 3 (Контроль БП), да/нет","regId":26},
-          {"label":"3.4.4. Внутренний вход 4 (Дуговая защита), да/нет","regId":26},
-          {"label":"3.4.5. Внутренний вход 5 (МТЗ прямого действия), да/нет","regId":26},
-          {"label":"3.4.6. Внутренний вход 6 (ОТКЛ), да/нет","regId":26},
-          {"label":"3.4.7. Внутренний вход 7 (ВКЛ), да/нет","regId":26},
-          {"label":"3.4.8. Внутренний вход 8 (СБРОС), да/нет","regId":26},
-          {"label":"3.4.9. Внутренний вход 9 (ТЕСТ МТЗ), да/нет","regId":26},
-          {"label":"3.4.10. Внутренний вход 10 (ТЕСТ БКИ), да/нет","regId":26},
-          {"label":"3.4.11. Внутренний вход 11 (ТЕСТ ТНП), да/нет","regId":26},
-          {"label":"3.4.12. Внутренний вход 12 (ЛЗШ), да/нет","regId":26},
-          {"label":"3.4.13. Внутренний вход 13 (АВР-1), да/нет","regId":26},
-          {"label":"3.4.14. Внутренний вход 14 (АВР-2), да/нет","regId":26},
-          {"label":"3.4.15. Внутренний вход 15 (Резерв), да/нет","regId":26}
-        ]
-      },
-      {"label":"3.5. Включение управления выходами, да/нет","regId":29},
-      {"label":"3.6. Ввод пароля","regId":4}
-    ]
-  },
-  {
-    "label":"4. Настройки",
-    "children":[
-      {
-        "label":"4.1. Присоединение",
-        "children":[
-          {"label":"4.1.1. Номинальное напряжение питания, В","regId":65},
-          {"label":"4.1.2. Номинальное напряжение линейное, В","regId":66},
-          {"label":"4.1.3. К трансформации, ед.","regId":233},
-          {"label":"4.1.4. Измерение тока В, да/нет","regId":234},
-          {"label":"4.1.5. Порог несимметрии, А","regId":47},
-          {"label":"4.1.6. Порог несимметрии, В","regId":39},
-          {"label":"4.1.7. Параллельная нагрузка, да/нет","regId":53},
-          {"label":"4.1.8. Порог измерения тока пуска, А","regId":74},
-          {"label":"4.1.9. Индикация линейного напряжения, да/нет","regId":40}
-        ]
-      },
-      {
-        "label":"4.2. Режим управления",
-        "children":[
-          {"label":"4.2.1. Телеуправление, да/нет","regId":213},
-          {"label":"4.2.2. МПУ, да/нет","regId":213},
-          {"label":"4.2.3. ПДУ - 1, да/нет","regId":213},
-          {"label":"4.2.4. ПДУ - 2, да/нет","regId":213},
-          {"label":"4.2.5. Контактор, да/нет","regId":213},
-          {"label":"4.2.6. Реверсивный блок, да/нет","regId":213},
-          {"label":"4.2.7. ПДУ-1 + ПДУ-2, да/нет","regId":213},
-          {"label":"4.2.8. Время МПУ, мС","regId":218},
-          {"label":"4.2.9. Время «СТОП», мС","regId":219},
-          {"label":"4.2.10. Время ПДУ1, мС","regId":216},
-          {"label":"4.2.11. Время ПДУ2, мС","regId":217}
-        ]
-      },
-      {
-        "label":"4.3. Блок управления КА",
-        "children":[
-          {"label":"4.3.1. Время реле ОТКЛ, мС","regId":188},
-          {"label":"4.3.2. Время реле ВКЛ, мС","regId":189},
-          {"label":"4.3.3. Время ГОТОВ, мС","regId":190},
-          {"label":"4.3.4. Время отключения КА, мС","regId":193},
-          {"label":"4.3.5. Время включения КА, мС","regId":194}
-        ]
-      },
-      {
-        "label":"4.4. Настройки АПВ",
-        "children":[
-          {"label":"4.4.1. АПВ введен, да/нет","regId":205},
-          {"label":"4.4.2. Без ограничения времени, да/нет","regId":205},
-          {"label":"4.4.3. Время отключения, сек","regId":207},
-          {"label":"4.4.4. Время включения, мС","regId":208},
-          {"label":"4.4.5. Интервал включения, мС","regId":209}
-        ]
-      },
-      {
-        "label":"4.5. Настройки АВР",
-        "children":[
-          {"label":"4.5.1. АВР введен, да/нет","regId":210},
-          {"label":"4.5.2. Внешний вход, да/нет","regId":210},
-          {"label":"4.5.3. Порог Rmin, да/нет","regId":210},
-          {"label":"4.5.4. Время включения, мС","regId":212}
-        ]
-      },
-      {
-        "label":"4.6. Часы RTC",
-        "children":[
-          {"label":"4.6.1. Часы RTC, секунды","regId":17},
-          {"label":"4.6.2. Часы RTC, минуты","regId":18},
-          {"label":"4.6.3. Часы RTC, часы","regId":19},
-          {"label":"4.6.4. Часы RTC, дата","regId":20},
-          {"label":"4.6.5. Часы RTC, месяц","regId":21},
-          {"label":"4.6.6. Часы RTC, год","regId":22}
-        ]
-      },
-      {
-        "label":"4.7. Телеуправление RS485",
-        "children":[
-          {"label":"4.7.1. Адрес в сети","regId":1},
-          {"label":"4.7.2. Скорость, kbps","regId":2},
-          {"label":"4.7.3. Таймаут, мС","regId":3},
-          {"label":"4.7.4. Тип протокола","regId":5},
-          {"label":"4.7.5. Пакетов в секунду","regId":6}
-        ]
-      },
-      {"label":"4.8. Обновление, мС","regId":252},
-      {
-        "label":"4.9. Управление профилями",
-        "children":[
-          {"label":"4.9.1. Сохранить настройки, да/нет","regId":0},
-          {"label":"4.9.2. Загрузить настройки, да/нет","regId":0},
-          {"label":"4.9.3. Загрузить заводские настройки, да/нет","regId":0},
-          {"label":"4.9.4. Юстировка каналов измерений, да/нет","regId":0},
-          {"label":"4.9.5. Обнуление счётчиков, да/нет","regId":0}
-        ]
-      },
-      {
-        "label":"4.10. Самодиагностика",
-        "children":[
-          {
-            "label":"4.10.1. Тест датчиков тока",
-            "children":[
-              {"label":"4.10.1.1. Самодиагностика, да/нет","regId":199},
-              {"label":"4.10.1.2. При включенном КА, да/нет","regId":199},
-              {"label":"4.10.1.3. Отключение КА, да/нет","regId":199},
-              {"label":"4.10.1.4. Уставка, А","regId":202}
-            ]
-          },
-          {
-            "label":"4.10.2. Тест канала БКИ",
-            "children":[
-              {"label":"4.10.2.1. Самодиагностика, да/нет","regId":199},
-              {"label":"4.10.2.2. Уставка, кОм","regId":201}
-            ]
-          },
-          {
-            "label":"4.10.3. Тест канала НЗЗ",
-            "children":[
-              {"label":"4.10.3.1. Самодиагностика, да/нет","regId":199},
-              {"label":"4.10.3.2. При включенном КА, да/нет","regId":199},
-              {"label":"4.10.3.3. Отключение КА, да/нет","regId":199},
-              {"label":"4.10.3.4. Уставка диагностики, мА","regId":203}
-            ]
-          },
-          {"label":"4.10.4. Время диагностики, мС","regId":204}
-        ]
-      },
-      {"label":"4.11. Ввод пароля","regId":4}
-    ]
-  },
-  {
-    "label":"5. Журнал событий",
-    "children":[
-      {"label":"5.1. Журналы Аварий и Неисправностей","children":[
-        {"label":"5.1.1. Протокол Х из 200","regId":101},
-        {"label":"5.1.2. Событие: Отключение КА","regId":191},
-        {"label":"5.1.3. Источник: Авария","regId":28},
-        {"label":"5.1.4. Время: ХХ:ХХ:ХХ","regId":17},
-        {"label":"5.1.5. Дата: ХХ.ХХ.ХХХХ","regId":20},
-        {"label":"5.1.6. Авария: Наименование","regId":28},
-        {"label":"5.1.7. Время точное, мС","regId":16},
-        {"label":"5.1.8. Ток фазы А, А","regId":41},
-        {"label":"5.1.9. Ток фазы В, А","regId":42},
-        {"label":"5.1.10. Ток фазы С, А","regId":43},
-        {"label":"5.1.11. Максимальный ток, А","regId":44},
-        {"label":"5.1.12. Напряжение фазы А, В","regId":33},
-        {"label":"5.1.13. Напряжение фазы В, В","regId":34},
-        {"label":"5.1.14. Напряжение фазы С, В","regId":35},
-        {"label":"5.1.15. Сопротивление фазы А, кОм","regId":49},
-        {"label":"5.1.16. Сопротивление фазы В, кОм","regId":50},
-        {"label":"5.1.17. Сопротивление фазы С, кОм","regId":51},
-        {"label":"5.1.18. Напряжение нуля, В","regId":60},
-        {"label":"5.1.19. Ток нуля, мА","regId":61},
-        {"label":"5.1.20. Угол между током и напряжением нуля, º","regId":62},
-        {"label":"5.1.21. Линейное напряжение, В","regId":64},
-        {"label":"5.1.22. Температура в блоке БЗУ, ºС","regId":32},
-        {"label":"5.1.23. Ток пуска, А","regId":71},
-        {"label":"5.1.24. Напряжение пуска, В","regId":72},
-        {"label":"5.1.25. Время пуска, мС","regId":73},
-        {"label":"5.1.26. Релейные выходы","regId":23},
-        {"label":"5.1.27. Внешние входы 1","regId":24},
-        {"label":"5.1.28. Внешние входы 2","regId":25},
-        {"label":"5.1.29. Внутренние входы","regId":26},
-        {"label":"5.1.30. Регистр аварий","regId":28},
-        {"label":"5.1.31. Регистр неисправностей","regId":30}
-      ]},
-      {"label":"5.2. Изменение уставок","children":[
-        {"label":"5.2.1. Протокол Х из 200","regId":105},
-        {"label":"5.2.2. Номер параметра: ХХХ","regId":104},
-        {"label":"5.2.3. Наименование параметра","regId":104},
-        {"label":"5.2.4. Время: ХХ:ХХ:ХХ","regId":17},
-        {"label":"5.2.5. Дата: ХХ.ХХ.ХХХХ","regId":20},
-        {"label":"5.2.6. Источник: МПУ","regId":27},
-        {"label":"5.2.7. Старое значение","regId":104},
-        {"label":"5.2.8. Новое значение","regId":104}
-      ]},
-      {"label":"5.3. Включения/Отключения КА","children":[
-        {"label":"5.3.1. Протокол Х из 200","regId":107},
-        {"label":"5.3.2. Событие: Отключение","regId":191},
-        {"label":"5.3.3. Источник: Питание","regId":108},
-        {"label":"5.3.4. Время: ХХ:ХХ:ХХ","regId":17},
-        {"label":"5.3.5. Дата: ХХ.ХХ.ХХХХ","regId":20}
-      ]},
-      {"label":"5.4. Включения/Отключения питания МТЗП","children":[
-        {"label":"5.4.1. Протокол Х из 200","regId":109},
-        {"label":"5.4.2. Событие: Отключение","regId":108},
-        {"label":"5.4.3. Источник: Питание","regId":108},
-        {"label":"5.4.4. Время: ХХ:ХХ:ХХ","regId":17},
-        {"label":"5.4.5. Дата: ХХ.ХХ.ХХХХ","regId":20}
-      ]},
-      {"label":"5.5. Самодиагностика МТЗП","children":[
-        {"label":"5.5.1. Протокол Х из 200","regId":111},
-        {"label":"5.5.2. Событие: Диагностика МТЗ","regId":200},
-        {"label":"5.5.3. Источник: ПТУ","regId":199},
-        {"label":"5.5.4. Время: ХХ:ХХ:ХХ","regId":17},
-        {"label":"5.5.5. Дата: ХХ.ХХ.ХХХХ","regId":20}
-      ]},
-      {"label":"5.6. Потребляемая мощность","children":[
-        {"label":"5.6.1. Протокол Х из 117","regId":113},
-        {"label":"5.6.2. Мощность активная, кВт","regId":57},
-        {"label":"5.6.3. Коэффициент мощности","regId":59},
-        {"label":"5.6.4. Время: ХХ:ХХ:ХХ","regId":17},
-        {"label":"5.6.5. Дата: ХХ.ХХ.ХХХХ","regId":20}
-      ]},
-      {"label":"5.7. Запись мощности, сек","regId":114},
-      {"label":"5.8. Сброс журналов, да/нет","regId":0},
-      {"label":"5.9. Ввод пароля","regId":4}
-    ]
-  },
-  {
-    "label":"6. Информация об изделии",
-    "children":[
-      {"label":"Тип блока: МТЗП – 2T","regId":10},
-      {"label":"Серийный номер","regId":10},
-      {"label":"Месяц выпуска","regId":11},
-      {"label":"Версия программы","regId":11},
-      {"label":"Время","regId":17},
-      {"label":"Дата","regId":20}
-    ]
-  }
-];
-
-function isEditableLabel(label){
-  const editableHints = [
-    'да/нет',
-    'Уставка',
-    'уставка',
-    'Порог',
-    'порог',
-    'Время',
-    'время',
-    'Номинал',
-    'номинал',
-    'Конфигурация',
-    'управление',
-    'Управление',
-    'Обновление',
-    'Сохранить',
-    'Загрузить',
-    'Юстировка',
-    'Обнуление'
-  ];
-  return editableHints.some(hint => label.includes(hint));
-}
-
-function renderMenuItem(item){
-  const container = document.createElement('div');
-  if(item.children && item.children.length){
-    const details = document.createElement('details');
-    const summary = document.createElement('summary');
-    summary.textContent = item.label;
-    details.appendChild(summary);
-    item.children.forEach(child => {
-      details.appendChild(renderMenuItem(child));
-    });
-    container.appendChild(details);
-  }else{
-    const line = document.createElement('div');
-    line.className = 'menu-item';
-    if(typeof item.regId === 'number'){
-      const link = document.createElement('span');
-      link.className = 'menu-link';
-      link.textContent = item.label;
-      line.appendChild(link);
-      const meta = registerIndex.get(item.regId);
-      if(meta){
-        const metaSpan = document.createElement('span');
-        metaSpan.className = 'menu-meta';
-        metaSpan.textContent = ` (рег. ${meta.id}, ${meta.format}, scale ${meta.scale})`;
-        line.appendChild(metaSpan);
-      }
-      const valueSpan = document.createElement('span');
-      valueSpan.className = 'menu-value';
-      valueSpan.textContent = '...';
-      valueSpan.dataset.regId = String(item.regId);
-      line.appendChild(valueSpan);
-      if(isEditableLabel(item.label)){
-        const edit = document.createElement('div');
-        edit.className = 'menu-edit';
-        const input = document.createElement('input');
-        input.placeholder = 'Новое значение';
-        input.dataset.regId = String(item.regId);
-        const button = document.createElement('button');
-        button.textContent = 'Записать';
-        button.addEventListener('click', () => writeRegisterValue(item.regId, input.value));
-        edit.appendChild(input);
-        edit.appendChild(button);
-        line.appendChild(edit);
-      }
-    }else{
-      line.textContent = item.label;
-    }
-    container.appendChild(line);
-  }
-  return container;
-}
-
-const menuRoot = document.getElementById('menu');
-const menuTabs = document.getElementById('menuTabs');
-let activeMenuIndex = 0;
-
-function renderTabs(){
-  menuTabs.innerHTML = '';
-  menuTree.forEach((item, index) => {
-    const tab = document.createElement('div');
-    tab.className = 'tab' + (index === activeMenuIndex ? ' active' : '');
-    tab.textContent = item.label;
-    tab.addEventListener('click', () => {
-      activeMenuIndex = index;
-      renderMenuPage();
-    });
-    menuTabs.appendChild(tab);
-  });
-}
-
-function renderMenuPage(){
-  renderTabs();
-  menuRoot.innerHTML = '';
-  menuRoot.appendChild(renderMenuItem(menuTree[activeMenuIndex]));
-  refreshVisibleValues();
-}
-
-function formatValue(raw, format, scale){
-  const scaleFactor = Math.pow(10, scale);
-  if(format==='HEX') return `0x${raw.toString(16).toUpperCase()}`;
-  if(format==='OCT') return `0o${raw.toString(8)}`;
-  if(format==='BIN') return `0b${raw.toString(2)}`;
-  if(format==='REL') return (raw / scaleFactor).toFixed(scale);
-  if(format==='SDC') return (raw / scaleFactor).toFixed(scale);
-  if(format==='SWT') return raw ? '1' : '0';
-  return (raw / scaleFactor).toFixed(scale);
-}
-
-function parseValue(text, format, scale){
-  if(format==='HEX') return parseInt(text, 16);
-  if(format==='OCT') return parseInt(text, 8);
-  if(format==='BIN') return parseInt(text, 2);
-  if(format==='SWT') return text === '1' || text.toLowerCase() === 'true' ? 1 : 0;
-  const scaleFactor = Math.pow(10, scale);
-  const num = Number(text);
-  return Math.round(num * scaleFactor);
-}
-
-function writeRegisterValue(regId, valueText){
-  const meta = registerIndex.get(regId);
-  if(!meta) return;
-  const raw = parseValue(valueText, meta.format || 'DEC', meta.scale || 0);
-  fetch(`/api/write?reg=${regId}&val=${raw}`)
-    .then(r=>r.json())
-    .then(() => refreshVisibleValues());
-}
-
-function getVisibleRegIds(){
-  const ids = new Set();
-  menuRoot.querySelectorAll('[data-reg-id]').forEach(el => {
-    ids.add(Number(el.dataset.regId));
-  });
-  return Array.from(ids);
-}
-
-function refreshVisibleValues(){
-  const ids = getVisibleRegIds();
-  ids.forEach(regId => {
-    fetch(`/api/read?reg=${regId}`)
-      .then(r=>r.json())
-      .then(d => {
-        const meta = registerIndex.get(regId);
-        const formatted = meta ? formatValue(d.value, meta.format || 'DEC', meta.scale || 0) : d.value;
-        menuRoot.querySelectorAll(`.menu-value[data-reg-id="${regId}"]`)
-          .forEach(span => span.textContent = formatted);
-      });
-  });
-}
-
-renderMenuPage();
-setInterval(refreshVisibleValues, 2000);
-</script>
-</body></html>
+        ];
+        
+        const registerIndex = new Map(registerTable.map(item => [item.id, item]));
+        
+        // Глобальные переменные
+        let currentPage = 'dashboard';
+        let currentEditReg = null;
+        let autoRefresh = true;
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация навигации
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const page = this.dataset.page;
+                    switchPage(page);
+                });
+            });
+            
+            // Обновление времени
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // Автообновление данных
+            refreshAll();
+            setInterval(() => {
+                if (autoRefresh) {
+                    refreshVisibleData();
+                }
+            }, 2000);
+            
+            // Поиск
+            document.getElementById('searchProtections')?.addEventListener('input', function(e) {
+                searchProtections(e.target.value);
+            });
+        });
+        
+        // Переключение страниц
+        function switchPage(pageId) {
+            // Обновить активную вкладку
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.nav-tab[data-page="${pageId}"]`).classList.add('active');
+            
+            // Показать нужную страницу
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            
+            currentPage = pageId;
+            refreshVisibleData();
+        }
+        
+        // Обновление видимых данных
+        function refreshVisibleData() {
+            const page = document.getElementById(currentPage);
+            const elements = page.querySelectorAll('[data-reg]');
+            
+            elements.forEach(el => {
+                const regId = parseInt(el.dataset.reg);
+                const bit = el.dataset.bit;
+                
+                fetch(`/api/read?reg=${regId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.ok) {
+                            const meta = registerIndex.get(regId);
+                            let value = data.value;
+                            
+                            // Обработка битовых значений
+                            if (bit !== undefined) {
+                                value = (value >> parseInt(bit)) & 1;
+                                el.textContent = value ? 'Вкл' : 'Выкл';
+                                if (value) {
+                                    el.style.color = '#4CAF50';
+                                    el.style.fontWeight = 'bold';
+                                } else {
+                                    el.style.color = '#dc3545';
+                                }
+                            } else {
+                                // Форматирование значения
+                                const formatted = formatValue(value, meta?.format || 'DEC', meta?.scale || 0);
+                                el.textContent = formatted;
+                                
+                                // Добавление единиц измерения
+                                if (meta) {
+                                    const unitSpan = el.querySelector('.unit');
+                                    if (!unitSpan && meta.name.match(/[АВкОмВтВА°CмС]/)) {
+                                        const unit = getUnitFromName(meta.name);
+                                        if (unit) {
+                                            el.innerHTML = formatted + `<span class="unit">${unit}</span>`;
+                                        }
+                                    }
+                                }
+                                
+                                // Цветовое кодирование
+                                colorCodeValue(el, value, regId);
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Ошибка чтения регистра:', err);
+                        el.textContent = 'Ошибка';
+                        el.style.color = '#dc3545';
+                    });
+            });
+            
+            // Обновить время последнего обновления
+            updateLastUpdateTime();
+        }
+        
+        // Форматирование значения
+        function formatValue(raw, format, scale) {
+            const scaleFactor = Math.pow(10, scale);
+            
+            if (format === 'HEX') return `0x${raw.toString(16).toUpperCase()}`;
+            if (format === 'OCT') return `0o${raw.toString(8)}`;
+            if (format === 'BIN') return `0b${raw.toString(2)}`;
+            if (format === 'REL' || format === 'SDC') {
+                return (raw / scaleFactor).toFixed(scale);
+            }
+            if (format === 'SWT') return raw ? 'Да' : 'Нет';
+            
+            // DEC формат
+            if (scale > 0) {
+                return (raw / scaleFactor).toFixed(scale);
+            }
+            return raw.toString();
+        }
+        
+        // Получение единиц измерения из имени
+        function getUnitFromName(name) {
+            if (name.includes('А,') || name.includes('ток')) return 'А';
+            if (name.includes('В,') || name.includes('напряж')) return 'В';
+            if (name.includes('кОм') || name.includes('сопротивление')) return 'кОм';
+            if (name.includes('кВт')) return 'кВт';
+            if (name.includes('кВА')) return 'кВА';
+            if (name.includes('°C') || name.includes('температура')) return '°C';
+            if (name.includes('мС') || name.includes('мсек') || name.includes('сек')) return 'мс';
+            if (name.includes('мА')) return 'мА';
+            if (name.includes('%')) return '%';
+            return '';
+        }
+        
+        // Цветовое кодирование значений
+        function colorCodeValue(element, value, regId) {
+            // Сброс цвета
+            element.style.color = '';
+            element.style.fontWeight = '';
+            
+            // Особые случаи для статусов
+            if (regId === 28 || regId === 30) { // Аварии и неисправности
+                if (value > 0) {
+                    element.style.color = '#dc3545';
+                    element.style.fontWeight = 'bold';
+                }
+            }
+            else if (regId === 32) { // Температура
+                if (value > 600) { // >60°C
+                    element.style.color = '#dc3545';
+                } else if (value > 500) { // >50°C
+                    element.style.color = '#ffc107';
+                }
+            }
+            else if (regId === 52) { // Сопротивление изоляции
+                if (value < 100) { // <100 кОм
+                    element.style.color = '#dc3545';
+                } else if (value < 500) { // <500 кОм
+                    element.style.color = '#ffc107';
+                }
+            }
+        }
+        
+        // Открытие модального окна редактирования
+        function editProtection(regId) {
+            const meta = registerIndex.get(regId);
+            if (!meta) return;
+            
+            currentEditReg = regId;
+            
+            document.getElementById('paramName').textContent = meta.name;
+            document.getElementById('paramHelp').textContent = 
+                `Формат: ${meta.format}, Масштаб: ${meta.scale}`;
+            
+            // Получить текущее значение
+            fetch(`/api/read?reg=${regId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ok) {
+                        const current = formatValue(data.value, meta.format, meta.scale);
+                        document.getElementById('currentValue').textContent = current;
+                        document.getElementById('paramValue').value = data.value;
+                    }
+                });
+            
+            document.getElementById('editModal').style.display = 'flex';
+        }
+        
+        // Сохранение параметра
+        function saveParam() {
+            if (!currentEditReg) return;
+            
+            const meta = registerIndex.get(currentEditReg);
+            const inputValue = document.getElementById('paramValue').value;
+            
+            let rawValue;
+            if (meta.format === 'HEX') {
+                rawValue = parseInt(inputValue, 16);
+            } else if (meta.format === 'SWT') {
+                rawValue = inputValue === '1' || inputValue.toLowerCase() === 'true' ? 1 : 0;
+            } else {
+                const scaleFactor = Math.pow(10, meta.scale || 0);
+                rawValue = Math.round(parseFloat(inputValue) * scaleFactor);
+            }
+            
+            fetch(`/api/write?reg=${currentEditReg}&val=${rawValue}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ok) {
+                        showNotification('Параметр успешно обновлен');
+                        refreshAll();
+                        closeModal();
+                    } else {
+                        showNotification('Ошибка обновления параметра', 'error');
+                    }
+                });
+        }
+        
+        // Закрытие модального окна
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+            currentEditReg = null;
+        }
+        
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.querySelector('#notificationText').textContent = message;
+            
+            if (type === 'error') {
+                notification.style.background = '#dc3545';
+                notification.querySelector('i').className = 'fas fa-exclamation-circle';
+            } else {
+                notification.style.background = '#4CAF50';
+                notification.querySelector('i').className = 'fas fa-check-circle';
+            }
+            
+            notification.style.display = 'flex';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Обновление времени
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ru-RU');
+            const dateStr = now.toLocaleDateString('ru-RU');
+            
+            document.querySelectorAll('.time').forEach(el => {
+                el.textContent = timeStr;
+            });
+        }
+        
+        // Обновление времени последнего обновления
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ru-RU');
+            document.getElementById('lastUpdateTime').textContent = timeStr;
+        }
+        
+        // Полное обновление
+        function refreshAll() {
+            refreshVisibleData();
+            showNotification('Данные обновлены');
+        }
+        
+        // Вспомогательные функции
+        function showProtections() {
+            switchPage('protections');
+        }
+        
+        function toggleAPV() {
+            // Реализация переключения АПВ
+            showNotification('Режим АПВ изменен');
+        }
+        
+        function saveSettings() {
+            showNotification('Настройки сохранены');
+        }
+        
+        function loadFactorySettings() {
+            if (confirm('Загрузить заводские настройки? Все изменения будут потеряны.')) {
+                showNotification('Загрузка заводских настроек...');
+                setTimeout(() => {
+                    showNotification('Заводские настройки загружены');
+                    refreshAll();
+                }, 1000);
+            }
+        }
+        
+        function calibrateSensors() {
+            showNotification('Запущена юстировка датчиков');
+        }
+        
+        function resetCounters() {
+            if (confirm('Обнулить все счетчики?')) {
+                showNotification('Счетчики обнулены');
+            }
+        }
+        
+        function changePassword() {
+            const newPass = prompt('Введите новый пароль:');
+            if (newPass) {
+                showNotification('Пароль изменен');
+            }
+        }
+        
+        function clearLogs() {
+            if (confirm('Очистить все журналы событий?')) {
+                showNotification('Журналы очищены');
+            }
+        }
+        
+        function exportLogs() {
+            showNotification('Экспорт данных начат');
+        }
+        
+        function syncTime() {
+            const now = new Date();
+            showNotification(`Время синхронизировано: ${now.toLocaleString('ru-RU')}`);
+        }
+        
+        function runDiagnostics() {
+            showNotification('Диагностика запущена');
+        }
+        
+        // Поиск защит
+        function searchProtections(query) {
+            const cards = document.querySelectorAll('#protections .card');
+            query = query.toLowerCase();
+            
+            cards.forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const isVisible = title.includes(query) || query === '';
+                card.style.display = isVisible ? 'block' : 'none';
+            });
+        }
+        
+        // Отображение деталей
+        function showRelaysDetails() {
+            alert('Детальная информация о релейных выходах будет отображена здесь');
+        }
+        
+        function showInputsDetails() {
+            alert('Детальная информация о входах будет отображена здесь');
+        }
+        
+        function showAlarmsDetails() {
+            alert('Детальная информация об авариях будет отображена здесь');
+        }
+        
+        function showLogDetails(type) {
+            alert(`Детали журнала ${type} будут отображены здесь`);
+        }
+    </script>
+</body>
+</html>
 )rawliteral";
 
 /* ================= API ================= */
