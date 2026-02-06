@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+#include <Preferences.h>
 
 /* ================= HARDWARE ================= */
 #define RS485_RX 16
@@ -31,6 +32,13 @@ const char* AP_PASS = "12345678";
 #define DEBUG_SERIAL Serial
 #define DEBUG_ENABLED true
 
+Preferences preferences;
+uint8_t mtzpAddress = MTZP_ADDR;
+uint32_t mtzpBaudRate = UART_BAUD;
+
+const uint32_t allowedBaudRates[] = {9600, 19200, 38400, 57600, 115200};
+const size_t allowedBaudRatesCount = sizeof(allowedBaudRates) / sizeof(allowedBaudRates[0]);
+
 void debugHex(const char* label, const uint8_t* data, int len) {
   if (!DEBUG_ENABLED) return;
   DEBUG_SERIAL.print(label);
@@ -53,6 +61,28 @@ void debugLogf(const char* format, ...) {
   vsnprintf(buffer, sizeof(buffer), format, args);
   va_end(args);
   DEBUG_SERIAL.println(buffer);
+}
+
+bool isAllowedBaudRate(uint32_t baudRate) {
+  for (size_t i = 0; i < allowedBaudRatesCount; i++) {
+    if (allowedBaudRates[i] == baudRate) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void loadSettings() {
+  mtzpAddress = preferences.getUChar("addr", MTZP_ADDR);
+  mtzpBaudRate = preferences.getUInt("baud", UART_BAUD);
+
+  if (mtzpAddress > 0xFF) {
+    mtzpAddress = MTZP_ADDR;
+  }
+
+  if (!isAllowedBaudRate(mtzpBaudRate)) {
+    mtzpBaudRate = UART_BAUD;
+  }
 }
 
 /* ================= CRC16 (Точная реализация из документации МТЗП) ================= */
@@ -220,7 +250,7 @@ int slipRecv(uint8_t* buffer, uint16_t maxLen, uint32_t timeoutMs) {
 bool mtzpRead(uint16_t reg, uint16_t& val) {
   // Формируем пакет для чтения параметра (команда 0x01)
   uint8_t frame[6] = {
-    MTZP_ADDR,           // Адрес устройства
+    mtzpAddress,         // Адрес устройства
     0x01,                // Команда чтения параметра (бит 7 = 0 - запрос от master)
     (uint8_t)(reg >> 8), // Старший байт номера параметра
     (uint8_t)(reg),      // Младший байт номера параметра
@@ -251,9 +281,9 @@ bool mtzpRead(uint16_t reg, uint16_t& val) {
   debugHex("RX READ:", reply, len);
 
   // Проверяем адрес
-  if (reply[0] != MTZP_ADDR) {
+  if (reply[0] != mtzpAddress) {
     debugLogf("ОШИБКА: Неверный адрес в ответе: ожидали 0x%02X, получили 0x%02X",
-              MTZP_ADDR, reply[0]);
+              mtzpAddress, reply[0]);
     return false;
   }
 
@@ -305,7 +335,7 @@ bool mtzpRead(uint16_t reg, uint16_t& val) {
 bool mtzpWrite(uint16_t reg, uint16_t val) {
   // Команда записи = 0x03 (согласно документации стр. 23)
   uint8_t frame[8] = {
-    MTZP_ADDR,           // Адрес устройства
+    mtzpAddress,         // Адрес устройства
     0x03,                // Команда записи параметра
     (uint8_t)(reg >> 8), // Старший байт номера параметра
     (uint8_t)(reg),      // Младший байт номера параметра
@@ -324,7 +354,7 @@ bool mtzpWrite(uint16_t reg, uint16_t val) {
   slipSend(frame, 8);
 
   // НОВОЕ: Проверка широковещательного адреса (стр. 21)
-  if (MTZP_ADDR == 0x00) {
+  if (mtzpAddress == 0x00) {
     debugLog("Широковещательная команда - ответа не будет");
     return true;  // Считаем успешной
   }
@@ -344,9 +374,9 @@ bool mtzpWrite(uint16_t reg, uint16_t val) {
   debugHex("RX WRITE:", reply, len);
 
   // Проверяем адрес
-  if (reply[0] != MTZP_ADDR) {
+  if (reply[0] != mtzpAddress) {
     debugLogf("ОШИБКА: Неверный адрес в ответе: ожидали 0x%02X, получили 0x%02X",
-              MTZP_ADDR, reply[0]);
+              mtzpAddress, reply[0]);
     return false;
   }
 
@@ -404,7 +434,7 @@ bool mtzpReadMultiple(uint16_t* regs, uint8_t count, uint16_t* values) {
   uint8_t frameLen = 3 + count * 2 + 2;
   uint8_t frame[frameLen];
 
-  frame[0] = MTZP_ADDR;
+  frame[0] = mtzpAddress;
   frame[1] = 0x02;  // Команда чтения группы параметров
   frame[2] = count;
 
@@ -441,9 +471,9 @@ bool mtzpReadMultiple(uint16_t* regs, uint8_t count, uint16_t* values) {
   debugHex("RX READ MULTIPLE:", reply, len);
 
   // Проверяем адрес
-  if (reply[0] != MTZP_ADDR) {
+  if (reply[0] != mtzpAddress) {
     debugLogf("ОШИБКА: Неверный адрес в ответе: ожидали 0x%02X, получили 0x%02X",
-              MTZP_ADDR, reply[0]);
+              mtzpAddress, reply[0]);
     return false;
   }
 
@@ -505,7 +535,19 @@ bool mtzpReadMultiple(uint16_t* regs, uint8_t count, uint16_t* values) {
 WebServer server(80);
 
 /* ================= API ================= */
+void addCorsHeaders() {
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+void handleOptions() {
+  addCorsHeaders();
+  server.send(204);
+}
+
 void handleRead() {
+  addCorsHeaders();
   if (!server.hasArg("reg")) {
     server.send(400, "application/json", "{\"error\":\"Missing 'reg' parameter\"}");
     return;
@@ -527,6 +569,7 @@ void handleRead() {
 }
 
 void handleWrite() {
+  addCorsHeaders();
   if (!server.hasArg("reg") || !server.hasArg("val")) {
     server.send(400, "application/json",
                 "{\"error\":\"Missing 'reg' or 'val' parameter\"}");
@@ -548,6 +591,7 @@ void handleWrite() {
 }
 
 void handleReadMultiple() {
+  addCorsHeaders();
   if (!server.hasArg("regs")) {
     server.send(400, "application/json",
                 "{\"error\":\"Missing 'regs' parameter (comma-separated)\"}");
@@ -596,6 +640,7 @@ void handleReadMultiple() {
 }
 
 void handleTest() {
+  addCorsHeaders();
   // Тестовая функция для проверки связи
   // Читаем регистр 10 (серийный номер) и регистр 11 (дата изготовления)
   uint16_t serialNum = 0;
@@ -612,8 +657,8 @@ void handleTest() {
   doc["message"] = (ok1 && ok2) ? "Связь с МТЗП установлена" : "Ошибка связи с МТЗП";
 
   // Дополнительная информация
-  doc["device_address"] = String("0x") + String(MTZP_ADDR, HEX);
-  doc["baud_rate"] = UART_BAUD;
+  doc["device_address"] = String("0x") + String(mtzpAddress, HEX);
+  doc["baud_rate"] = mtzpBaudRate;
 
   String payload;
   serializeJson(doc, payload);
@@ -621,19 +666,86 @@ void handleTest() {
 }
 
 void handleStatus() {
+  addCorsHeaders();
   // Статус системы
   StaticJsonDocument<512> doc;
   doc["uptime_ms"] = millis();
   doc["free_heap"] = ESP.getFreeHeap();
   doc["wifi_rssi"] = WiFi.softAPgetStationNum();
-  doc["device_address"] = String("0x") + String(MTZP_ADDR, HEX);
-  doc["baud_rate"] = UART_BAUD;
+  doc["device_address"] = String("0x") + String(mtzpAddress, HEX);
+  doc["baud_rate"] = mtzpBaudRate;
   doc["slip_timeout_ms"] = SLIP_TIMEOUT_MS;
   doc["byte_timeout_ms"] = BYTE_TIMEOUT_MS;
 
   String payload;
   serializeJson(doc, payload);
   server.send(200, "application/json", payload);
+}
+
+void handleConfigGet() {
+  addCorsHeaders();
+  StaticJsonDocument<256> doc;
+  doc["ok"] = true;
+  doc["address"] = mtzpAddress;
+  doc["baud_rate"] = mtzpBaudRate;
+
+  JsonArray baudArray = doc.createNestedArray("allowed_baud_rates");
+  for (size_t i = 0; i < allowedBaudRatesCount; i++) {
+    baudArray.add(allowedBaudRates[i]);
+  }
+
+  String payload;
+  serializeJson(doc, payload);
+  server.send(200, "application/json", payload);
+}
+
+void handleConfigSet() {
+  addCorsHeaders();
+  if (!server.hasArg("addr") || !server.hasArg("baud")) {
+    server.send(400, "application/json",
+                "{\"error\":\"Missing 'addr' or 'baud' parameter\"}");
+    return;
+  }
+
+  int addrValue = server.arg("addr").toInt();
+  uint32_t baudValue = server.arg("baud").toInt();
+
+  if (addrValue < 0 || addrValue > 255) {
+    server.send(400, "application/json",
+                "{\"error\":\"Invalid address (0-255)\"}");
+    return;
+  }
+
+  if (!isAllowedBaudRate(baudValue)) {
+    server.send(400, "application/json",
+                "{\"error\":\"Invalid baud rate\"}");
+    return;
+  }
+
+  mtzpAddress = static_cast<uint8_t>(addrValue);
+  mtzpBaudRate = baudValue;
+  preferences.putUChar("addr", mtzpAddress);
+  preferences.putUInt("baud", mtzpBaudRate);
+
+  Serial2.end();
+  delay(50);
+  Serial2.begin(mtzpBaudRate, SERIAL_8N1, RS485_RX, RS485_TX);
+
+  StaticJsonDocument<256> doc;
+  doc["ok"] = true;
+  doc["address"] = mtzpAddress;
+  doc["baud_rate"] = mtzpBaudRate;
+
+  String payload;
+  serializeJson(doc, payload);
+  server.send(200, "application/json", payload);
+}
+
+void handleRestart() {
+  addCorsHeaders();
+  server.send(200, "application/json", "{\"ok\":true}");
+  delay(200);
+  ESP.restart();
 }
 
 /* ================= SETUP / LOOP ================= */
@@ -644,13 +756,16 @@ void setup() {
   DEBUG_SERIAL.println("\n\n=== MTZP ESP32 Шлюз v2.0 ===");
   DEBUG_SERIAL.println("Исправленная версия с улучшенной обработкой протокола");
 
+  preferences.begin("mtzp", false);
+  loadSettings();
+
   // НОВОЕ: Валидация адреса устройства
-  if (MTZP_ADDR == 0x00) {
+  if (mtzpAddress == 0x00) {
     DEBUG_SERIAL.println("ВНИМАНИЕ: Адрес 0x00 - широковещательный режим");
     DEBUG_SERIAL.println("Устройство не будет отвечать на запросы!");
-  } else if (MTZP_ADDR > 0xFF) {
+  } else if (mtzpAddress > 0xFF) {
     DEBUG_SERIAL.printf("ОШИБКА: Неверный адрес МТЗП 0x%02X (допустимо 0x01-0xFF)\n",
-                       MTZP_ADDR);
+                       mtzpAddress);
     while(1) {
       digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
       delay(200);
@@ -658,20 +773,21 @@ void setup() {
   }
 
   // Инициализация UART для RS485
-  Serial2.begin(UART_BAUD, SERIAL_8N1, RS485_RX, RS485_TX);
+  Serial2.begin(mtzpBaudRate, SERIAL_8N1, RS485_RX, RS485_TX);
   pinMode(RS485_DE, OUTPUT);
   digitalWrite(RS485_DE, LOW);  // Режим приёма по умолчанию
 
-  DEBUG_SERIAL.printf("RS485 инициализирован: %d бод\n", UART_BAUD);
-  DEBUG_SERIAL.printf("Адрес МТЗП: 0x%02X\n", MTZP_ADDR);
+  DEBUG_SERIAL.printf("RS485 инициализирован: %d бод\n", mtzpBaudRate);
+  DEBUG_SERIAL.printf("Адрес МТЗП: 0x%02X\n", mtzpAddress);
   DEBUG_SERIAL.printf("Таймауты: общий=%dмс, между байтами=%dмс\n",
                      SLIP_TIMEOUT_MS, BYTE_TIMEOUT_MS);
 
   // Настройка WiFi точки доступа
+  WiFi.mode(WIFI_AP);
   WiFi.softAP(AP_SSID, AP_PASS);
-  IPAddress myIP = WiFi.softAPIP();
+  IPAddress apIP = WiFi.softAPIP();
   DEBUG_SERIAL.print("AP IP адрес: ");
-  DEBUG_SERIAL.println(myIP);
+  DEBUG_SERIAL.println(apIP);
 
   // Настройка веб-сервера
   server.on("/api/read", HTTP_GET, handleRead);
@@ -679,6 +795,16 @@ void setup() {
   server.on("/api/read_multiple", HTTP_GET, handleReadMultiple);
   server.on("/api/test", HTTP_GET, handleTest);
   server.on("/api/status", HTTP_GET, handleStatus);
+  server.on("/api/config", HTTP_GET, handleConfigGet);
+  server.on("/api/config", HTTP_POST, handleConfigSet);
+  server.on("/api/restart", HTTP_POST, handleRestart);
+  server.on("/api/read", HTTP_OPTIONS, handleOptions);
+  server.on("/api/write", HTTP_OPTIONS, handleOptions);
+  server.on("/api/read_multiple", HTTP_OPTIONS, handleOptions);
+  server.on("/api/test", HTTP_OPTIONS, handleOptions);
+  server.on("/api/status", HTTP_OPTIONS, handleOptions);
+  server.on("/api/config", HTTP_OPTIONS, handleOptions);
+  server.on("/api/restart", HTTP_OPTIONS, handleOptions);
 
   // Статический контент (HTML интерфейс)
   server.on("/", []() {
@@ -844,6 +970,17 @@ void setup() {
         </div>
 
         <div class="card">
+          <h2>⚙️ Настройки МТЗП</h2>
+          <div>
+            <input type="number" id="configAddr" placeholder="Адрес МТЗП (0-255)" min="0" max="255">
+            <select id="configBaud"></select>
+            <button onclick="saveConfig()">Сохранить</button>
+            <button onclick="restartDevice()">Перезагрузить</button>
+          </div>
+          <div id="configResult"></div>
+        </div>
+
+        <div class="card">
           <h2>📖 Чтение регистра</h2>
           <input type="number" id="readReg" placeholder="Номер регистра (0-276)" min="0" max="276" value="10">
           <button onclick="readRegister()">Прочитать</button>
@@ -888,6 +1025,7 @@ void setup() {
         // Обновление статуса при загрузке
         window.onload = function() {
           updateStatus();
+          loadConfig();
           setInterval(updateStatus, 5000); // Обновляем каждые 5 секунд
         };
 
@@ -908,6 +1046,64 @@ void setup() {
               const badge = document.getElementById('statusBadge');
               badge.textContent = 'Офлайн';
               badge.className = 'status-badge status-offline';
+            });
+        }
+
+        function loadConfig() {
+          fetch('/api/config')
+            .then(r => r.json())
+            .then(data => {
+              if (!data.ok) {
+                throw new Error('Ошибка загрузки настроек');
+              }
+              const addrInput = document.getElementById('configAddr');
+              const baudSelect = document.getElementById('configBaud');
+              addrInput.value = data.address;
+              baudSelect.innerHTML = '';
+              data.allowed_baud_rates.forEach(rate => {
+                const option = document.createElement('option');
+                option.value = rate;
+                option.textContent = rate + ' bps';
+                if (rate === data.baud_rate) {
+                  option.selected = true;
+                }
+                baudSelect.appendChild(option);
+              });
+            })
+            .catch(err => {
+              document.getElementById('configResult').innerHTML =
+                `<div class="error">❌ Ошибка загрузки настроек: ${err.message}</div>`;
+            });
+        }
+
+        function saveConfig() {
+          const addr = document.getElementById('configAddr').value;
+          const baud = document.getElementById('configBaud').value;
+          fetch('/api/config?addr=' + addr + '&baud=' + baud, {method: 'POST'})
+            .then(r => r.json())
+            .then(data => {
+              let result = document.getElementById('configResult');
+              if (data.ok) {
+                result.innerHTML = `<div class="success">
+                  ✅ Настройки сохранены: адрес ${data.address}, скорость ${data.baud_rate} bps</div>`;
+                updateStatus();
+              } else {
+                result.innerHTML = `<div class="error">❌ Ошибка сохранения</div>`;
+              }
+            })
+            .catch(err => {
+              document.getElementById('configResult').innerHTML =
+                `<div class="error">❌ Ошибка сети: ${err.message}</div>`;
+            });
+        }
+
+        function restartDevice() {
+          const result = document.getElementById('configResult');
+          result.innerHTML = '<div class="success">♻️ Перезагрузка устройства...</div>';
+          fetch('/api/restart', {method: 'POST'})
+            .catch(err => {
+              document.getElementById('configResult').innerHTML =
+                `<div class="error">❌ Ошибка перезагрузки: ${err.message}</div>`;
             });
         }
 
@@ -1016,13 +1212,16 @@ void setup() {
 
   server.begin();
   DEBUG_SERIAL.println("HTTP сервер запущен");
-  DEBUG_SERIAL.println("Откройте http://" + myIP.toString() + " в браузере");
+  DEBUG_SERIAL.println("Откройте http://" + apIP.toString() + " в браузере");
   DEBUG_SERIAL.println("\nДоступные API endpoints:");
   DEBUG_SERIAL.println("  GET  /api/read?reg=<номер>");
   DEBUG_SERIAL.println("  POST /api/write?reg=<номер>&val=<значение>");
   DEBUG_SERIAL.println("  GET  /api/read_multiple?regs=<номер1,номер2,...>");
   DEBUG_SERIAL.println("  GET  /api/test");
   DEBUG_SERIAL.println("  GET  /api/status");
+  DEBUG_SERIAL.println("  GET  /api/config");
+  DEBUG_SERIAL.println("  POST /api/config?addr=<адрес>&baud=<скорость>");
+  DEBUG_SERIAL.println("  POST /api/restart");
   DEBUG_SERIAL.println("\nГотов к работе!\n");
 }
 
