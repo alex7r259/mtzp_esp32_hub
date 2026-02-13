@@ -25,8 +25,7 @@ const char* AP_PASS = "12345678";
 
 /* ================= TIMEOUTS ================= */
 #define SLIP_TIMEOUT_MS 500      // Общий таймаут ответа (достаточно 500мс)
-#define BYTE_TIMEOUT_MS 100      // Между байтами (увеличено для длинных кабелей)
-#define DE_SWITCH_DELAY_US 100   // Задержка переключения направления RS485
+#define BYTE_TIMEOUT_MS 10      // Между байтами (увеличено для длинных кабелей)
 
 /* ================= ОТЛАДКА ================= */
 #define DEBUG_SERIAL Serial
@@ -145,14 +144,12 @@ const char* getMtzpError(uint8_t errorCode) {
 
 /* ================= SLIP ================= */
 void slipSend(const uint8_t* data, uint16_t len) {
-  // Переключаем RS485 на передачу
   digitalWrite(RS485_DE, HIGH);
-  delayMicroseconds(DE_SWITCH_DELAY_US);
+  delayMicroseconds(20);
 
-  // Отправляем начало пакета
+  // END = начало сообщения
   Serial2.write(SLIP_END);
 
-  // Отправляем данные с экранированием
   for (uint16_t i = 0; i < len; i++) {
     if (data[i] == SLIP_END) {
       Serial2.write(SLIP_ESC);
@@ -165,46 +162,38 @@ void slipSend(const uint8_t* data, uint16_t len) {
     }
   }
 
-  // Отправляем конец пакета
-  Serial2.write(SLIP_END);
   Serial2.flush();
-
-  // Переключаем RS485 на приём
-  delayMicroseconds(DE_SWITCH_DELAY_US);
+  delayMicroseconds(20);
   digitalWrite(RS485_DE, LOW);
 }
 
 int slipRecv(uint8_t* buffer, uint16_t maxLen, uint32_t timeoutMs) {
   uint32_t start = millis();
-  uint32_t lastByteTime = start;
+  uint32_t lastByte = 0;
+  bool inPacket = false;
   bool escape = false;
   uint16_t idx = 0;
-  bool inPacket = false;
 
   while (millis() - start < timeoutMs) {
     if (Serial2.available()) {
-      lastByteTime = millis();
       uint8_t ch = Serial2.read();
+      lastByte = millis();
 
-      // Ждём начала пакета
-      if (!inPacket && ch == SLIP_END) {
-        inPacket = true;
-        continue;
-      }
-
-      // Пропускаем байты до начала пакета
-      if (!inPacket) continue;
-
-      // Конец пакета
       if (ch == SLIP_END) {
-        if (idx > 0) {  // Игнорируем пустые пакеты
-          debugLogf("SLIP: Получен пакет %d байт", idx);
+        if (inPacket && idx > 0) {
+          // конец предыдущего сообщения
           return idx;
         }
+        // начало нового
+        inPacket = true;
+        idx = 0;
+        escape = false;
+        lastByte = millis();
         continue;
       }
 
-      // Обработка escape-последовательностей
+      if (!inPacket) continue;
+
       if (ch == SLIP_ESC) {
         escape = true;
         continue;
@@ -216,31 +205,17 @@ int slipRecv(uint8_t* buffer, uint16_t maxLen, uint32_t timeoutMs) {
         escape = false;
       }
 
-      // Сохраняем байт в буфер
-      if (idx < maxLen) {
-        buffer[idx++] = ch;
-      } else {
-        debugLog("ОШИБКА: Переполнение буфера SLIP");
-        debugHex("Частичный пакет:", buffer, idx);
-        return -2;
-      }
+      if (idx < maxLen) buffer[idx++] = ch;
+      else return -2;
     }
 
-    // Проверяем таймаут между байтами
-    if (inPacket && idx > 0 && (millis() - lastByteTime > BYTE_TIMEOUT_MS)) {
-      debugLogf("ОШИБКА: Таймаут между байтами (получено %d байт)", idx);
-      debugHex("Частичный пакет:", buffer, idx);
-      return -3;
+    // 🔴 КРИТИЧНО: конец кадра по тишине
+    if (inPacket && idx > 0 &&
+        millis() - lastByte > BYTE_TIMEOUT_MS) {
+      return idx;
     }
 
     delay(1);
-  }
-
-  if (inPacket) {
-    debugLogf("ОШИБКА: Общий таймаут (получено %d байт)", idx);
-    debugHex("Частичный пакет:", buffer, idx);
-  } else {
-    debugLog("ОШИБКА: Общий таймаут (пакет не начался)");
   }
   return -1;
 }
@@ -248,6 +223,10 @@ int slipRecv(uint8_t* buffer, uint16_t maxLen, uint32_t timeoutMs) {
 /* ================= MTZP Протокол (SLIP) ================= */
 
 bool mtzpRead(uint16_t reg, uint16_t& val) {
+  while (Serial2.available()) {
+    Serial2.read();
+  }
+
   // Формируем пакет для чтения параметра (команда 0x01)
   uint8_t frame[6] = {
     mtzpAddress,         // Адрес устройства
@@ -333,6 +312,10 @@ bool mtzpRead(uint16_t reg, uint16_t& val) {
 }
 
 bool mtzpWrite(uint16_t reg, uint16_t val) {
+  while (Serial2.available()) {
+    Serial2.read();
+  }
+
   // Команда записи = 0x03 (согласно документации стр. 23)
   uint8_t frame[8] = {
     mtzpAddress,         // Адрес устройства
