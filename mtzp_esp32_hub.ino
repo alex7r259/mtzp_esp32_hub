@@ -29,7 +29,7 @@ const char* AP_PASS = "12345678";
 
 /* ================= ОТЛАДКА ================= */
 #define DEBUG_SERIAL Serial
-#define DEBUG_ENABLED true
+#define DEBUG_ENABLED false
 
 Preferences preferences;
 uint8_t mtzpAddress = MTZP_ADDR;
