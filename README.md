@@ -53,8 +53,6 @@ text
 ESP32                  RS485 Converter               МТЗП
 GPIO16 (RX)    ---->   RO (Receiver Output)
 GPIO17 (TX)    ---->   DI (Driver Input)
-GPIO4 (DE)     ---->   DE (Driver Enable)   ---->   A (Line A)
-                       /RE (Receiver Enable) ---->   B (Line B)
 GND            ---->   GND                  ---->   GND
 Важно: Используйте витую пару для линий A/B и общий GND.
 
@@ -64,7 +62,7 @@ GND            ---->   GND                  ---->   GND
 
 cpp
 #define MTZP_ADDR 0x12      // Адрес МТЗП (из документации)
-#define UART_BAUD 115200    // Скорость обмена
+#define UART_BAUD 19200    // Скорость обмена
 
 // Настройки WiFi
 const char* AP_SSID = "MTZP";
@@ -72,7 +70,7 @@ const char* AP_PASS = "12345678";
 
 // Таймауты
 #define SLIP_TIMEOUT_MS 500
-#define BYTE_TIMEOUT_MS 100
+#define BYTE_TIMEOUT_MS 10
 2. Физические подключения
 Подключите RS485 конвертер к ESP32:
 
@@ -80,7 +78,6 @@ RX → GPIO16
 
 TX → GPIO17
 
-DE → GPIO4
 
 Подключите конвертер к МТЗП:
 
