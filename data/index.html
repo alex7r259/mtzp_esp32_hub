@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MTZP ESP32 Hub</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background:#f6f7fb; }
+    .card { background:#fff; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    input, button { padding:8px; margin:4px 0; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .ok { color: #0a7a2f; }
+    .err { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>MTZP ESP32 Hub</h1>
+  <p><a href="/set">Перейти к настройкам</a></p>
+
+  <div class="card">
+    <h3>Чтение регистра</h3>
+    <div class="row">
+      <input id="readReg" type="number" value="10" />
+      <button onclick="readRegister()">Читать</button>
+    </div>
+    <div id="readResult"></div>
+  </div>
+
+  <div class="card">
+    <h3>Запись регистра</h3>
+    <div class="row">
+      <input id="writeReg" type="number" value="10" />
+      <input id="writeVal" type="number" value="1" />
+      <button onclick="writeRegister()">Записать</button>
+    </div>
+    <div id="writeResult"></div>
+  </div>
+
+  <script>
+    function readRegister() {
+      const reg = document.getElementById('readReg').value;
+      fetch('/api/read?reg=' + encodeURIComponent(reg))
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('readResult').innerHTML = data.ok
+            ? `<div class="ok">OK: reg=${data.reg}, value=${data.value} (0x${data.hex_value})</div>`
+            : `<div class="err">Ошибка чтения</div>`;
+        })
+        .catch(err => document.getElementById('readResult').innerHTML = `<div class="err">${err.message}</div>`);
+    }
+
+    function writeRegister() {
+      const reg = document.getElementById('writeReg').value;
+      const val = document.getElementById('writeVal').value;
+      fetch('/api/write?reg=' + encodeURIComponent(reg) + '&val=' + encodeURIComponent(val), { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('writeResult').innerHTML = data.ok
+            ? `<div class="ok">OK: reg=${data.reg}, value=${data.value}</div>`
+            : `<div class="err">Ошибка записи</div>`;
+        })
+        .catch(err => document.getElementById('writeResult').innerHTML = `<div class="err">${err.message}</div>`);
+    }
+  </script>
+</body>
+</html>

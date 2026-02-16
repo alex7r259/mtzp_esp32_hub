@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+#include <LittleFS.h>
 #include <Preferences.h>
 
 /* ================= HARDWARE ================= */
@@ -188,7 +189,7 @@ int slipRecv(uint8_t* buffer, uint16_t maxLen, uint32_t timeoutMs) {
         inPacket = true;
         idx = 0;
         escape = false;
-        lastByte = millis();
+        lastByte = millis();   // ← ДОБАВИТЬ
         continue;
       }
 
@@ -217,16 +218,18 @@ int slipRecv(uint8_t* buffer, uint16_t maxLen, uint32_t timeoutMs) {
 
     delay(1);
   }
+
   return -1;
 }
+
 
 /* ================= MTZP Протокол (SLIP) ================= */
 
 bool mtzpRead(uint16_t reg, uint16_t& val) {
+
   while (Serial2.available()) {
     Serial2.read();
   }
-
   // Формируем пакет для чтения параметра (команда 0x01)
   uint8_t frame[6] = {
     mtzpAddress,         // Адрес устройства
@@ -312,10 +315,10 @@ bool mtzpRead(uint16_t reg, uint16_t& val) {
 }
 
 bool mtzpWrite(uint16_t reg, uint16_t val) {
+
   while (Serial2.available()) {
     Serial2.read();
   }
-
   // Команда записи = 0x03 (согласно документации стр. 23)
   uint8_t frame[8] = {
     mtzpAddress,         // Адрес устройства
@@ -755,6 +758,19 @@ void setup() {
     }
   }
 
+  if (!LittleFS.begin(true)) {   // true = форматировать при ошибке монтирования
+    DEBUG_SERIAL.println("Ошибка монтирования LittleFS!");
+    // Можно добавить индикацию ошибки, например мигание LED
+    while (true) {
+      digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+      delay(200);
+    }
+  } else {
+    DEBUG_SERIAL.println("LittleFS успешно смонтирован");
+    DEBUG_SERIAL.printf("Общий размер: %d байт\n", LittleFS.totalBytes());
+    DEBUG_SERIAL.printf("Использовано:  %d байт\n", LittleFS.usedBytes());
+  }
+
   // Инициализация UART для RS485
   Serial2.begin(mtzpBaudRate, SERIAL_8N1, RS485_RX, RS485_TX);
   pinMode(RS485_DE, OUTPUT);
@@ -788,409 +804,31 @@ void setup() {
   server.on("/api/status", HTTP_OPTIONS, handleOptions);
   server.on("/api/config", HTTP_OPTIONS, handleOptions);
   server.on("/api/restart", HTTP_OPTIONS, handleOptions);
-
-  // Статический контент (HTML интерфейс)
-  server.on("/", []() {
-    String html = R"rawliteral(
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>MTZP Web Interface v2.0</title>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          padding: 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          min-height: 100vh;
-        }
-        .container {
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-        h1 {
-          color: white;
-          margin-bottom: 30px;
-          text-align: center;
-          text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        .card {
-          background: white;
-          border-radius: 10px;
-          padding: 25px;
-          margin: 15px 0;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        .card h2 {
-          color: #333;
-          margin-bottom: 20px;
-          border-bottom: 2px solid #667eea;
-          padding-bottom: 10px;
-        }
-        input, button, select {
-          padding: 12px 20px;
-          margin: 8px 5px;
-          border: 2px solid #ddd;
-          border-radius: 6px;
-          font-size: 14px;
-          transition: all 0.3s;
-        }
-        input:focus {
-          outline: none;
-          border-color: #667eea;
-        }
-        button {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          cursor: pointer;
-          font-weight: bold;
-        }
-        button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        button:active {
-          transform: translateY(0);
-        }
-        .success {
-          color: #27ae60;
-          padding: 15px;
-          background: #d5f4e6;
-          border-radius: 6px;
-          margin-top: 15px;
-        }
-        .error {
-          color: #e74c3c;
-          padding: 15px;
-          background: #fadbd8;
-          border-radius: 6px;
-          margin-top: 15px;
-        }
-        .status-badge {
-          display: inline-block;
-          padding: 5px 15px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: bold;
-          margin-left: 10px;
-        }
-        .status-online {
-          background: #27ae60;
-          color: white;
-        }
-        .status-offline {
-          background: #e74c3c;
-          color: white;
-        }
-        .info-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 15px;
-          margin-top: 20px;
-        }
-        .info-item {
-          padding: 15px;
-          background: #f8f9fa;
-          border-radius: 6px;
-          border-left: 4px solid #667eea;
-        }
-        .info-label {
-          font-size: 12px;
-          color: #666;
-          margin-bottom: 5px;
-        }
-        .info-value {
-          font-size: 18px;
-          font-weight: bold;
-          color: #333;
-        }
-        code {
-          background: #f4f4f4;
-          padding: 2px 6px;
-          border-radius: 3px;
-          font-family: 'Courier New', monospace;
-        }
-        .examples {
-          background: #f8f9fa;
-          padding: 15px;
-          border-radius: 6px;
-          margin-top: 15px;
-          font-size: 13px;
-        }
-        .examples h3 {
-          margin-bottom: 10px;
-          color: #667eea;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>🔧 MTZP Web Interface v2.0</h1>
-
-        <div class="card">
-          <h2>📊 Статус системы <span class="status-badge status-offline" id="statusBadge">Проверка...</span></h2>
-          <div class="info-grid" id="statusGrid">
-            <div class="info-item">
-              <div class="info-label">Адрес устройства</div>
-              <div class="info-value" id="deviceAddr">-</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Скорость обмена</div>
-              <div class="info-value" id="baudRate">-</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Время работы</div>
-              <div class="info-value" id="uptime">-</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Свободная память</div>
-              <div class="info-value" id="freeHeap">-</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>⚙️ Настройки МТЗП</h2>
-          <div>
-            <input type="number" id="configAddr" placeholder="Адрес МТЗП (0-255)" min="0" max="255">
-            <select id="configBaud"></select>
-            <button onclick="saveConfig()">Сохранить</button>
-            <button onclick="restartDevice()">Перезагрузить</button>
-          </div>
-          <div id="configResult"></div>
-        </div>
-
-        <div class="card">
-          <h2>📖 Чтение регистра</h2>
-          <input type="number" id="readReg" placeholder="Номер регистра (0-276)" min="0" max="276" value="10">
-          <button onclick="readRegister()">Прочитать</button>
-          <div id="readResult"></div>
-          <div class="examples">
-            <h3>Примеры регистров:</h3>
-            • Рег. 10: Серийный номер<br>
-            • Рег. 33-35: Напряжения фаз A, B, C<br>
-            • Рег. 41-43: Токи фаз A, B, C
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>📝 Запись регистра</h2>
-          <input type="number" id="writeReg" placeholder="Номер регистра" min="0" max="276">
-          <input type="number" id="writeVal" placeholder="Значение (0-65535)" min="0" max="65535">
-          <button onclick="writeRegister()">Записать</button>
-          <div id="writeResult"></div>
-        </div>
-
-        <div class="card">
-          <h2>📚 Чтение группы регистров</h2>
-          <input type="text" id="multiRegs" placeholder="Номера через запятую (напр: 10,11,33)" style="width: 100%;">
-          <button onclick="readMultiple()">Прочитать группу</button>
-          <div id="multiResult"></div>
-          <div class="examples">
-            <h3>Примеры:</h3>
-            • <code>10,11</code> - Серийный номер и дата<br>
-            • <code>33,34,35</code> - Напряжения трёх фаз<br>
-            • <code>41,42,43</code> - Токи трёх фаз
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>🔍 Тест связи</h2>
-          <button onclick="testConnection()">Проверить связь с МТЗП</button>
-          <div id="testResult"></div>
-        </div>
-      </div>
-
-      <script>
-        // Обновление статуса при загрузке
-        window.onload = function() {
-          updateStatus();
-          loadConfig();
-          setInterval(updateStatus, 5000); // Обновляем каждые 5 секунд
-        };
-
-        function updateStatus() {
-          fetch('/api/status')
-            .then(r => r.json())
-            .then(data => {
-              document.getElementById('deviceAddr').textContent = data.device_address;
-              document.getElementById('baudRate').textContent = data.baud_rate + ' bps';
-              document.getElementById('uptime').textContent = Math.floor(data.uptime_ms / 1000) + ' сек';
-              document.getElementById('freeHeap').textContent = Math.floor(data.free_heap / 1024) + ' КБ';
-
-              const badge = document.getElementById('statusBadge');
-              badge.textContent = 'Онлайн';
-              badge.className = 'status-badge status-online';
-            })
-            .catch(err => {
-              const badge = document.getElementById('statusBadge');
-              badge.textContent = 'Офлайн';
-              badge.className = 'status-badge status-offline';
-            });
-        }
-
-        function loadConfig() {
-          fetch('/api/config')
-            .then(r => r.json())
-            .then(data => {
-              if (!data.ok) {
-                throw new Error('Ошибка загрузки настроек');
-              }
-              const addrInput = document.getElementById('configAddr');
-              const baudSelect = document.getElementById('configBaud');
-              addrInput.value = data.address;
-              baudSelect.innerHTML = '';
-              data.allowed_baud_rates.forEach(rate => {
-                const option = document.createElement('option');
-                option.value = rate;
-                option.textContent = rate + ' bps';
-                if (rate === data.baud_rate) {
-                  option.selected = true;
-                }
-                baudSelect.appendChild(option);
-              });
-            })
-            .catch(err => {
-              document.getElementById('configResult').innerHTML =
-                `<div class="error">❌ Ошибка загрузки настроек: ${err.message}</div>`;
-            });
-        }
-
-        function saveConfig() {
-          const addr = document.getElementById('configAddr').value;
-          const baud = document.getElementById('configBaud').value;
-          fetch('/api/config?addr=' + addr + '&baud=' + baud, {method: 'POST'})
-            .then(r => r.json())
-            .then(data => {
-              let result = document.getElementById('configResult');
-              if (data.ok) {
-                result.innerHTML = `<div class="success">
-                  ✅ Настройки сохранены: адрес ${data.address}, скорость ${data.baud_rate} bps</div>`;
-                updateStatus();
-              } else {
-                result.innerHTML = `<div class="error">❌ Ошибка сохранения</div>`;
-              }
-            })
-            .catch(err => {
-              document.getElementById('configResult').innerHTML =
-                `<div class="error">❌ Ошибка сети: ${err.message}</div>`;
-            });
-        }
-
-        function restartDevice() {
-          const result = document.getElementById('configResult');
-          result.innerHTML = '<div class="success">♻️ Перезагрузка устройства...</div>';
-          fetch('/api/restart', {method: 'POST'})
-            .catch(err => {
-              document.getElementById('configResult').innerHTML =
-                `<div class="error">❌ Ошибка перезагрузки: ${err.message}</div>`;
-            });
-        }
-
-        function readRegister() {
-          let reg = document.getElementById('readReg').value;
-          fetch('/api/read?reg=' + reg)
-            .then(r => r.json())
-            .then(data => {
-              let result = document.getElementById('readResult');
-              if (data.ok) {
-                result.innerHTML = `<div class="success">
-                  ✅ Регистр ${data.reg}: <strong>${data.value}</strong> (0x${data.hex_value})</div>`;
-              } else {
-                result.innerHTML = `<div class="error">❌ Ошибка чтения регистра ${data.reg}</div>`;
-              }
-            })
-            .catch(err => {
-              document.getElementById('readResult').innerHTML =
-                `<div class="error">❌ Ошибка сети: ${err.message}</div>`;
-            });
-        }
-
-        function writeRegister() {
-          let reg = document.getElementById('writeReg').value;
-          let val = document.getElementById('writeVal').value;
-          fetch('/api/write?reg=' + reg + '&val=' + val, {method: 'POST'})
-            .then(r => r.json())
-            .then(data => {
-              let result = document.getElementById('writeResult');
-              if (data.ok) {
-                result.innerHTML = `<div class="success">
-                  ✅ Записано: регистр ${data.reg} = <strong>${data.value}</strong></div>`;
-              } else {
-                result.innerHTML = `<div class="error">❌ Ошибка записи</div>`;
-              }
-            })
-            .catch(err => {
-              document.getElementById('writeResult').innerHTML =
-                `<div class="error">❌ Ошибка сети: ${err.message}</div>`;
-            });
-        }
-
-        function readMultiple() {
-          let regs = document.getElementById('multiRegs').value;
-          fetch('/api/read_multiple?regs=' + regs)
-            .then(r => r.json())
-            .then(data => {
-              let result = document.getElementById('multiResult');
-              if (data.ok) {
-                let html = '<div class="success">✅ Успешно прочитано ' + data.count + ' регистров:<br><br>';
-                data.data.forEach(item => {
-                  html += `• Рег. ${item.reg}: <strong>${item.value}</strong> (0x${item.hex_value})<br>`;
-                });
-                html += '</div>';
-                result.innerHTML = html;
-              } else {
-                result.innerHTML = `<div class="error">❌ Ошибка чтения группы регистров</div>`;
-              }
-            })
-            .catch(err => {
-              document.getElementById('multiResult').innerHTML =
-                `<div class="error">❌ Ошибка сети: ${err.message}</div>`;
-            });
-        }
-
-        function testConnection() {
-          let btn = event.target;
-          btn.disabled = true;
-          btn.textContent = 'Проверка...';
-
-          fetch('/api/test')
-            .then(r => r.json())
-            .then(data => {
-              let result = document.getElementById('testResult');
-              if (data.test_read_serial && data.test_read_date) {
-                result.innerHTML = `<div class="success">
-                  ✅ ${data.message}<br><br>
-                  📋 Серийный номер: <strong>${data.serial_number}</strong><br>
-                  📅 Дата изготовления: <strong>${data.manufacturing_date}</strong><br>
-                  🔌 Адрес: <code>${data.device_address}</code><br>
-                  ⚡ Скорость: <code>${data.baud_rate} bps</code>
-                </div>`;
-              } else {
-                result.innerHTML = `<div class="error">
-                  ❌ ${data.message}<br>
-                  Проверьте подключение и настройки RS485
-                </div>`;
-              }
-              btn.disabled = false;
-              btn.textContent = 'Проверить связь с МТЗП';
-            })
-            .catch(err => {
-              document.getElementById('testResult').innerHTML =
-                `<div class="error">❌ Ошибка сети: ${err.message}</div>`;
-              btn.disabled = false;
-              btn.textContent = 'Проверить связь с МТЗП';
-            });
-        }
-      </script>
-    </body>
-    </html>
-    )rawliteral";
-
-    server.send(200, "text/html", html);
+  server.on("/", HTTP_GET, []() {
+    if (LittleFS.exists("/index.html")) {
+      File file = LittleFS.open("/index.html", "r");
+      if (file) {
+        server.streamFile(file, "text/html");
+        file.close();
+      } else {
+        server.send(500, "text/plain", "Failed to open index.html");
+      }
+    } else {
+      server.send(404, "text/plain", "index.html not found in LittleFS");
+    }
+  });
+  server.on("/set", HTTP_GET, []() {
+    if (LittleFS.exists("/set.html")) {
+      File file = LittleFS.open("/set.html", "r");
+      if (file) {
+        server.streamFile(file, "text/html");
+        file.close();
+      } else {
+        server.send(500, "text/plain", "Failed to open set.html");
+      }
+    } else {
+      server.send(404, "text/plain", "set.html not found in LittleFS");
+    }
   });
 
   server.begin();
