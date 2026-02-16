@@ -1,61 +1,1155 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Настройки MTZP</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background:#f6f7fb; }
-    .card { background:#fff; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-    input, select, button { padding:8px; margin:4px 0; }
-    .ok { color:#0a7a2f; }
-    .err { color:#b00020; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>МТЗП</title>
+    <style>
+        :root {
+            --primary: #2196f3;
+            --primary-dark: #1976d2;
+            --secondary: #03a9f4;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --light: #f5f7fa;
+            --gray: #e0e0e0;
+            --dark-gray: #757575;
+            --text: #333333;
+            --border: #d1d1d1;
+            --card-bg: #ffffff;
+            --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* Прогресс-бар */
+        .progress-bar {
+            height: 20px;
+            background: var(--gray);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        #progressFill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        #progressPercent {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        /* Новые стили для специальных карточек управления защитами */
+        .state {
+            font-weight: 800;
+        }
+        .state.on {
+            color: var(--success);
+        }
+        .state.off {
+            color: var(--danger);
+        }
+
+        .register-card.protection-control {
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .register-card.protection-control .register-name {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .register-card.protection-control .register-id {
+            font-size: 0.75rem;
+        }
+
+        .register-card.protection-control .value-row {
+            justify-content: flex-end;
+        }
+
+        .register-card.protection-control .value-display {
+            flex: initial;
+            font-size: 1rem;
+            text-align: right;
+        }
+
+        .register-card.protection-control .value-unit {
+            display: none;
+        }
+
+        .register-card.protection-control .card-footer {
+            justify-content: flex-end;
+        }
+
+        /* Двойная ширина только на экранах, где уже несколько колонок */
+        @media (min-width: 360px) {
+            .register-card.protection-control {
+                grid-column: span 2;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            font-size: 14px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background: var(--light);
+            color: var(--text);
+            line-height: 1.4;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--header-bg);
+            color: white;
+            padding: 10px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .header-subtitle {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .auth-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+
+        .auth-level {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .auth-level.admin {
+            background: rgba(244, 67, 54, 0.2);
+        }
+
+        .auth-level.system {
+            background: rgba(255, 152, 0, 0.2);
+        }
+
+        .auth-level.user {
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .auth-level.none {
+            background: rgba(158, 158, 158, 0.2);
+        }
+
+        .auth-time {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid var(--border);
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            color: var(--dark-gray);
+            text-decoration: none;
+            font-size: 0.75rem;
+            flex: 1;
+            max-width: 80px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(33, 150, 243, 0.08);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-content {
+            padding: 16px;
+            padding-bottom: 70px;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 4px 0;
+        }
+
+        .quick-action {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .quick-action.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .quick-action.success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .quick-action.warning {
+            background: var(--warning);
+            color: white;
+            border-color: var(--warning);
+        }
+
+        .quick-action.danger {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .quick-main-actions {
+            display: flex;
+            gap: 8px;
+            margin: 5px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 4px 0;
+            justify-content: center;
+        }
+
+        .quick-main-action {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 8px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .quick-main-action.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .quick-main-action.success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .quick-main-action.warning {
+            background: var(--warning);
+            color: white;
+            border-color: var(--warning);
+        }
+
+        .quick-main-action.danger {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 20px 0 12px 0;
+            padding-left: 8px;
+            border-left: 3px solid var(--primary);
+            color: var(--primary-dark);
+        }
+
+        .register-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .register-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .register-card:active {
+            transform: scale(0.98);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .register-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+            flex: 1;
+            padding-right: 8px;
+        }
+
+        .register-id {
+            font-size: 0.75rem;
+            color: var(--dark-gray);
+            background: var(--light);
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .value-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .value-display {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            flex: 1;
+        }
+
+        .value-unit {
+            font-size: 0.85rem;
+            color: var(--dark-gray);
+            margin-left: 4px;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        .register-format {
+            color: var(--dark-gray);
+        }
+
+        .register-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-dot.small {
+            width: 6px;
+            height: 6px;
+        }
+
+        .alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .alert.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 3px solid #4caf50;
+        }
+
+        .alert.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 3px solid #f44336;
+        }
+
+        .alert.warning {
+            background: #fff3e0;
+            color: #ef6c00;
+            border-left: 3px solid #ff9800;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-gray);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .modal-close:active {
+            background: var(--gray);
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-section {
+            margin-bottom: 20px;
+        }
+
+        .modal-label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--dark-gray);
+            font-size: 0.85rem;
+        }
+
+        .modal-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            padding: 10px;
+            background: var(--light);
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gray);
+            color: var(--text);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--dark-gray);
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;	
+            justify-content: center;
+        }
+
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+
+        .indicator.active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .indicator#indicator-alarm.active {
+            background: rgb(255, 0, 0);
+            color: #ffffff;
+        }
+
+        .indicator#indicator-ready.active {
+            background: rgb(76, 175, 80);
+            color: #ffffff;
+        }
+
+        .indicator#indicator-on.active {
+            background: rgb(255, 0, 0);
+            color: #ffffff;
+        }
+
+        .indicator#indicator-off.active {
+            background: rgb(76, 175, 80);
+            color: #ffffff;
+        }
+
+        .indicator i {
+            font-size: 0.85rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+
+        @media (min-width: 768px) {
+            .register-grid {
+                grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            }
+                        
+            .main-content {
+                padding-bottom: 20px;
+            }
+        }
+
+        .no-select {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .lock-icon {
+            color: var(--warning);
+            margin-left: 4px;
+        }
+
+        .password-input {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--dark-gray);
+            font-size: 1.2rem;
+        }
+
+        .register-card.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .register-card.locked:active {
+            transform: none;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--success);
+        }
+
+        .toggle-switch input:focus + .toggle-slider {
+            box-shadow: 0 0 1px var(--success);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+    </style>
 </head>
-<body>
-  <h1>Настройки MTZP</h1>
-  <p><a href="/">На главную</a></p>
+<body class="no-select">
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">МТЗП-2</div>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span id="statusBadge">Проверка...</span>
+            </div>
+        </div>
+        <div class="header-subtitle">Настройки и управление</div>
+        <div class="auth-info">
+            <div id="authLevel" class="auth-level none">Нет доступа</div>
+            <div id="authTime" class="auth-time">--:--</div>
+        </div>
+    </div>
 
-  <div class="card">
-    <h3>Параметры подключения</h3>
-    <label>Адрес (0-255): <input id="addr" type="number" min="0" max="255" /></label><br />
-    <label>Скорость: <select id="baud"></select></label><br />
-    <button onclick="saveConfig()">Сохранить</button>
-    <div id="result"></div>
-  </div>
+    <div class="main-content">
+        <!-- Статус системы -->
+        <div class="section-title">📊 Статус системы</div>
+        <div class="register-grid" id="statusGrid">
+            <div class="register-card">
+                <div class="card-header">
+                    <div class="register-name">Адрес устройства</div>
+                </div>
+                <div class="value-row">
+                    <div class="value-display" id="deviceAddr">-</div>
+                </div>
+            </div>
+            <div class="register-card">
+                <div class="card-header">
+                    <div class="register-name">Скорость обмена</div>
+                </div>
+                <div class="value-row">
+                    <div class="value-display" id="baudRate">-</div>
+                </div>
+            </div>
+            <div class="register-card">
+                <div class="card-header">
+                    <div class="register-name">Время работы</div>
+                </div>
+                <div class="value-row">
+                    <div class="value-display" id="uptime">-</div>
+                </div>
+            </div>
+            <div class="register-card">
+                <div class="card-header">
+                    <div class="register-name">Свободная память</div>
+                </div>
+                <div class="value-row">
+                    <div class="value-display" id="freeHeap">-</div>
+                </div>
+            </div>
+        </div>
 
-  <script>
-    function loadConfig() {
-      fetch('/api/config')
-        .then(r => r.json())
-        .then(data => {
-          document.getElementById('addr').value = data.address;
-          const select = document.getElementById('baud');
-          select.innerHTML = '';
-          data.allowed_baud_rates.forEach(rate => {
-            const opt = document.createElement('option');
-            opt.value = rate;
-            opt.textContent = rate;
-            if (rate === data.baud_rate) opt.selected = true;
-            select.appendChild(opt);
-          });
-        });
-    }
+        <!-- Настройки МТЗП -->
+        <div class="section-title">⚙️ Настройки МТЗП</div>
+        <div class="register-grid">
+            <div class="register-card">
+                <div class="form-group">
+                    <input type="number" id="configAddr" class="form-input" placeholder="Адрес МТЗП (0-255)" min="0" max="255">
+                </div>
+                <div class="form-group">
+                    <select id="configBaud" class="form-input"></select>
+                </div>
+                <div class="form-actions">
+                    <button onclick="saveConfig()" class="btn btn-primary">Сохранить</button>
+                    <button onclick="restartDevice()" class="btn btn-warning">Перезагрузить</button>
+                </div>
+                <div id="configResult"></div>
+            </div>
+        </div>
 
-    function saveConfig() {
-      const addr = document.getElementById('addr').value;
-      const baud = document.getElementById('baud').value;
-      fetch(`/api/config?addr=${encodeURIComponent(addr)}&baud=${encodeURIComponent(baud)}`, { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-          document.getElementById('result').innerHTML = data.ok
-            ? `<div class="ok">Сохранено: addr=${data.address}, baud=${data.baud_rate}</div>`
-            : `<div class="err">Ошибка сохранения</div>`;
-        })
-        .catch(err => document.getElementById('result').innerHTML = `<div class="err">${err.message}</div>`);
-    }
+        <!-- Чтение регистра -->
+        <div class="section-title">📖 Чтение регистра</div>
+        <div class="register-grid">
+            <div class="register-card">
+                <div class="form-group">
+                    <input type="number" id="readReg" class="form-input" placeholder="Номер регистра (0-276)" min="0" max="276" value="10">
+                </div>
+                <div class="form-actions">
+                    <button onclick="readRegister()" class="btn btn-primary">Прочитать</button>
+                </div>
+                <div id="readResult"></div>
+                <div class="examples">
+                    <h3>Примеры регистров:</h3>
+                    • Рег. 10: Серийный номер<br>
+                    • Рег. 33-35: Напряжения фаз A, B, C<br>
+                    • Рег. 41-43: Токи фаз A, B, C
+                </div>
+            </div>
+        </div>
 
-    loadConfig();
-  </script>
+        <!-- Запись регистра -->
+        <div class="section-title">📝 Запись регистра</div>
+        <div class="register-grid">
+            <div class="register-card">
+                <div class="form-group">
+                    <input type="number" id="writeReg" class="form-input" placeholder="Номер регистра" min="0" max="276">
+                </div>
+                <div class="form-group">
+                    <input type="number" id="writeVal" class="form-input" placeholder="Значение (0-65535)" min="0" max="65535">
+                </div>
+                <div class="form-actions">
+                    <button onclick="writeRegister()" class="btn btn-primary">Записать</button>
+                </div>
+                <div id="writeResult"></div>
+            </div>
+        </div>
+
+        <!-- Чтение группы регистров -->
+        <div class="section-title">📚 Чтение группы регистров</div>
+        <div class="register-grid">
+            <div class="register-card">
+                <div class="form-group">
+                    <input type="text" id="multiRegs" class="form-input" placeholder="Номера через запятую (напр: 10,11,33)" style="width: 100%;">
+                </div>
+                <div class="form-actions">
+                    <button onclick="readMultiple()" class="btn btn-primary">Прочитать группу</button>
+                </div>
+                <div id="multiResult"></div>
+                <div class="examples">
+                    <h3>Примеры:</h3>
+                    • <code>10,11</code> - Серийный номер и дата<br>
+                    • <code>33,34,35</code> - Напряжения трёх фаз<br>
+                    • <code>41,42,43</code> - Токи трёх фаз
+                </div>
+            </div>
+        </div>
+
+        <!-- Тест связи -->
+        <div class="section-title">🔍 Тест связи</div>
+        <div class="register-grid">
+            <div class="register-card">
+                <div class="form-actions">
+                    <button onclick="testConnection()" class="btn btn-primary">Проверить связь с МТЗП</button>
+                </div>
+                <div id="testResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Обновление статуса при загрузке
+        window.onload = function() {
+            updateStatus();
+            loadConfig();
+            setInterval(updateStatus, 5000); // Обновляем каждые 5 секунд
+        };
+
+        function updateStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('deviceAddr').textContent = data.device_address;
+                    document.getElementById('baudRate').textContent = data.baud_rate + ' bps';
+                    document.getElementById('uptime').textContent = Math.floor(data.uptime_ms / 1000) + ' сек';
+                    document.getElementById('freeHeap').textContent = Math.floor(data.free_heap / 1024) + ' КБ';
+
+                    const badge = document.getElementById('statusBadge');
+                    badge.textContent = 'Онлайн';
+                    const statusDot = document.querySelector('.status-dot');
+                    statusDot.style.background = 'var(--success)';
+                })
+                .catch(err => {
+                    const badge = document.getElementById('statusBadge');
+                    badge.textContent = 'Офлайн';
+                    const statusDot = document.querySelector('.status-dot');
+                    statusDot.style.background = 'var(--danger)';
+                });
+        }
+
+        function loadConfig() {
+            fetch('/api/config')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.ok) {
+                        throw new Error('Ошибка загрузки настроек');
+                    }
+                    const addrInput = document.getElementById('configAddr');
+                    const baudSelect = document.getElementById('configBaud');
+                    addrInput.value = data.address;
+                    baudSelect.innerHTML = '';
+                    data.allowed_baud_rates.forEach(rate => {
+                        const option = document.createElement('option');
+                        option.value = rate;
+                        option.textContent = rate + ' bps';
+                        if (rate === data.baud_rate) {
+                            option.selected = true;
+                        }
+                        baudSelect.appendChild(option);
+                    });
+                })
+                .catch(err => {
+                    document.getElementById('configResult').innerHTML =
+                        `<div class="alert error">❌ Ошибка загрузки настроек: ${err.message}</div>`;
+                });
+        }
+
+        function saveConfig() {
+            const addr = document.getElementById('configAddr').value;
+            const baud = document.getElementById('configBaud').value;
+            fetch('/api/config?addr=' + addr + '&baud=' + baud, {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    let result = document.getElementById('configResult');
+                    if (data.ok) {
+                        result.innerHTML = `<div class="alert success">
+                          ✅ Настройки сохранены: адрес ${data.address}, скорость ${data.baud_rate} bps</div>`;
+                        updateStatus();
+                    } else {
+                        result.innerHTML = `<div class="alert error">❌ Ошибка сохранения</div>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('configResult').innerHTML =
+                        `<div class="alert error">❌ Ошибка сети: ${err.message}</div>`;
+                });
+        }
+
+        function restartDevice() {
+            const result = document.getElementById('configResult');
+            result.innerHTML = '<div class="alert warning">♻️ Перезагрузка устройства...</div>';
+            fetch('/api/restart', {method: 'POST'})
+                .catch(err => {
+                    document.getElementById('configResult').innerHTML =
+                        `<div class="alert error">❌ Ошибка перезагрузки: ${err.message}</div>`;
+                });
+        }
+
+        function readRegister() {
+            let reg = document.getElementById('readReg').value;
+            fetch('/api/read?reg=' + reg)
+                .then(r => r.json())
+                .then(data => {
+                    let result = document.getElementById('readResult');
+                    if (data.ok) {
+                        result.innerHTML = `<div class="alert success">
+                          ✅ Регистр ${data.reg}: <strong>${data.value}</strong> (0x${data.hex_value})</div>`;
+                    } else {
+                        result.innerHTML = `<div class="alert error">❌ Ошибка чтения регистра ${data.reg}</div>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('readResult').innerHTML =
+                        `<div class="alert error">❌ Ошибка сети: ${err.message}</div>`;
+                });
+        }
+
+        function writeRegister() {
+            let reg = document.getElementById('writeReg').value;
+            let val = document.getElementById('writeVal').value;
+            fetch('/api/write?reg=' + reg + '&val=' + val, {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    let result = document.getElementById('writeResult');
+                    if (data.ok) {
+                        result.innerHTML = `<div class="alert success">
+                          ✅ Записано: регистр ${data.reg} = <strong>${data.value}</strong></div>`;
+                    } else {
+                        result.innerHTML = `<div class="alert error">❌ Ошибка записи</div>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('writeResult').innerHTML =
+                        `<div class="alert error">❌ Ошибка сети: ${err.message}</div>`;
+                });
+        }
+
+        function readMultiple() {
+            let regs = document.getElementById('multiRegs').value;
+            fetch('/api/read_multiple?regs=' + regs)
+                .then(r => r.json())
+                .then(data => {
+                    let result = document.getElementById('multiResult');
+                    if (data.ok) {
+                        let html = '<div class="alert success">✅ Успешно прочитано ' + data.count + ' регистров:<br><br>';
+                        data.data.forEach(item => {
+                            html += `• Рег. ${item.reg}: <strong>${item.value}</strong> (0x${item.hex_value})<br>`;
+                        });
+                        html += '</div>';
+                        result.innerHTML = html;
+                    } else {
+                        result.innerHTML = `<div class="alert error">❌ Ошибка чтения группы регистров</div>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('multiResult').innerHTML =
+                        `<div class="alert error">❌ Ошибка сети: ${err.message}</div>`;
+                });
+        }
+
+        function testConnection() {
+            let btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Проверка...';
+
+            fetch('/api/test')
+                .then(r => r.json())
+                .then(data => {
+                    let result = document.getElementById('testResult');
+                    if (data.test_read_serial && data.test_read_date) {
+                        result.innerHTML = `<div class="alert success">
+                          ✅ ${data.message}<br><br>
+                          📋 Серийный номер: <strong>${data.serial_number}</strong><br>
+                          📅 Дата изготовления: <strong>${data.manufacturing_date}</strong><br>
+                          🔌 Адрес: <code>${data.device_address}</code><br>
+                          ⚡ Скорость: <code>${data.baud_rate} bps</code>
+                        </div>`;
+                    } else {
+                        result.innerHTML = `<div class="alert error">
+                          ❌ ${data.message}<br>
+                          Проверьте подключение и настройки RS485
+                        </div>`;
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'Проверить связь с МТЗП';
+                })
+                .catch(err => {
+                    document.getElementById('testResult').innerHTML =
+                        `<div class="alert error">❌ Ошибка сети: ${err.message}</div>`;
+                    btn.disabled = false;
+                    btn.textContent = 'Проверить связь с МТЗП';
+                });
+        }
+    </script>
 </body>
 </html>
