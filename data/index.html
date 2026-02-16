@@ -1,66 +1,2964 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MTZP ESP32 Hub</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background:#f6f7fb; }
-    .card { background:#fff; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-    input, button { padding:8px; margin:4px 0; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .ok { color: #0a7a2f; }
-    .err { color: #b00020; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>МТЗП</title>
+    <style>
+	:root {
+            --primary: #2196f3;
+            --primary-dark: #1976d2;
+            --secondary: #03a9f4;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --light: #f5f7fa;
+            --gray: #e0e0e0;
+            --dark-gray: #757575;
+            --text: #333333;
+            --border: #d1d1d1;
+            --card-bg: #ffffff;
+            --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+		
+		/* Прогресс-бар */
+		.progress-bar {
+    		height: 20px;
+			background: var(--gray);
+			border-radius: 10px;
+			overflow: hidden;
+			margin: 15px 0;
+		}
+		
+		#progressFill {
+    		height: 100%;
+			background: linear-gradient(90deg, var(--primary), var(--secondary));
+			width: 0%;
+			transition: width 0.4s ease;
+		}
+		
+		#progressPercent {
+    		text-align: center;
+			font-size: 1.3rem;
+			font-weight: 700;
+			color: var(--primary-dark);
+		}
+		
+        /* Новые стили для специальных карточек управления защитами */
+        .state {
+            font-weight: 800;
+        }
+        .state.on {
+            color: var(--success);
+        }
+        .state.off {
+            color: var(--danger);
+        }
+
+        .register-card.protection-control {
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .register-card.protection-control .register-name {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .register-card.protection-control .register-id {
+            font-size: 0.75rem;
+        }
+
+        .register-card.protection-control .value-row {
+            justify-content: flex-end;
+        }
+
+        .register-card.protection-control .value-display {
+            flex: initial;
+            font-size: 1rem;
+            text-align: right;
+        }
+
+        .register-card.protection-control .value-unit {
+            display: none;
+        }
+
+        .register-card.protection-control .card-footer {
+            justify-content: flex-end;
+        }
+
+        /* Двойная ширина только на экранах, где уже несколько колонок */
+        @media (min-width: 360px) {
+            .register-card.protection-control {
+                grid-column: span 2;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            font-size: 14px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background: var(--light);
+            color: var(--text);
+            line-height: 1.4;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--header-bg);
+            color: white;
+            padding: 10px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .header-subtitle {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .auth-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+
+        .auth-level {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .auth-level.admin {
+            background: rgba(244, 67, 54, 0.2);
+        }
+
+        .auth-level.system {
+            background: rgba(255, 152, 0, 0.2);
+        }
+
+        .auth-level.user {
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .auth-level.none {
+            background: rgba(158, 158, 158, 0.2);
+        }
+
+        .auth-time {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid var(--border);
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            color: var(--dark-gray);
+            text-decoration: none;
+            font-size: 0.75rem;
+            flex: 1;
+            max-width: 80px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(33, 150, 243, 0.08);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-content {
+            padding: 16px;
+            padding-bottom: 70px;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 4px 0;
+        }
+
+        .quick-action {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .quick-action.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .quick-action.success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+.quick-action.warning {
+    background: var(--warning);
+    color: white;
+    border-color: var(--warning);
+}
+
+.quick-action.danger {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+}
+
+        .quick-main-actions {
+            display: flex;
+            gap: 8px;
+            margin: 5px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 4px 0;
+			justify-content: center;
+        }
+
+        .quick-main-action {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 8px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .quick-main-action.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .quick-main-action.success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+		
+		.quick-main-action.warning {
+		    background: var(--warning);
+			color: white;
+			border-color: var(--warning);
+		}
+		
+		.quick-main-action.danger {
+    		background: var(--danger);
+			color: white;
+			border-color: var(--danger);
+		}
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 20px 0 12px 0;
+            padding-left: 8px;
+            border-left: 3px solid var(--primary);
+            color: var(--primary-dark);
+        }
+
+        .register-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .register-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .register-card:active {
+            transform: scale(0.98);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .register-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+            flex: 1;
+            padding-right: 8px;
+        }
+
+        .register-id {
+            font-size: 0.75rem;
+            color: var(--dark-gray);
+            background: var(--light);
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .value-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .value-display {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            flex: 1;
+        }
+
+        .value-unit {
+            font-size: 0.85rem;
+            color: var(--dark-gray);
+            margin-left: 4px;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        .register-format {
+            color: var(--dark-gray);
+        }
+
+        .register-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-dot.small {
+            width: 6px;
+            height: 6px;
+        }
+
+        .alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .alert.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 3px solid #4caf50;
+        }
+
+        .alert.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 3px solid #f44336;
+        }
+
+        .alert.warning {
+            background: #fff3e0;
+            color: #ef6c00;
+            border-left: 3px solid #ff9800;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-gray);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .modal-close:active {
+            background: var(--gray);
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-section {
+            margin-bottom: 20px;
+        }
+
+        .modal-label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--dark-gray);
+            font-size: 0.85rem;
+        }
+
+        .modal-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            padding: 10px;
+            background: var(--light);
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gray);
+            color: var(--text);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--dark-gray);
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+.status-indicators {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;	
+    justify-content: center;
+}
+
+.indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    opacity: 0.5;
+    transition: all 0.3s;
+}
+
+.indicator.active {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.indicator#indicator-alarm.active {
+    background: rgb(255, 0, 0);
+    color: #ffffff;
+}
+
+.indicator#indicator-ready.active {
+    background: rgb(76, 175, 80);
+    color: #ffffff;
+}
+
+.indicator#indicator-on.active {
+    background: rgb(255, 0, 0);
+    color: #ffffff;
+}
+
+.indicator#indicator-off.active {
+    background: rgb(76, 175, 80);
+    color: #ffffff;
+}
+
+.indicator i {
+    font-size: 0.85rem;
+}
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (min-width: 360px) {
+            .register-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            }
+        }
+
+        @media (min-width: 768px) {
+            .register-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+                        
+            .main-content {
+                padding-bottom: 20px;
+            }
+        }
+
+        .no-select {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .lock-icon {
+            color: var(--warning);
+            margin-left: 4px;
+        }
+
+        .password-input {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--dark-gray);
+            font-size: 1.2rem;
+        }
+		
+		.register-card.locked {
+		opacity: 0.6;
+		cursor: not-allowed;
+		}
+		
+		.register-card.locked:active {
+		transform: none;
+		}
+		
+		.toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--success);
+        }
+
+        .toggle-switch input:focus + .toggle-slider {
+            box-shadow: 0 0 1px var(--success);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+    </style>
 </head>
-<body>
-  <h1>MTZP ESP32 Hub</h1>
-  <p><a href="/set">Перейти к настройкам</a></p>
-
-  <div class="card">
-    <h3>Чтение регистра</h3>
-    <div class="row">
-      <input id="readReg" type="number" value="10" />
-      <button onclick="readRegister()">Читать</button>
+<body class="no-select">
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">МТЗП-2</div>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span>Нет связи</span>
+            </div>
+        </div>
+        <div class="header-subtitle">Панель управления защитой</div>
+        <div class="auth-info">
+            <div id="authLevel" class="auth-level none">Нет доступа</div>
+            <div id="authTime" class="auth-time">--:--</div>
+        </div>
+    
+    <!-- ДОБАВЛЯЕМ СТРОКУ С ИНДИКАТОРАМИ -->
+    <div class="status-indicators">
+        <div class="indicator" id="indicator-alarm" title="Авария">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 576 512"><!--!Font Awesome Free v5.15.4 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M569.517 440.013C587.975 472.007 564.806 512 527.94 512H48.054c-36.937 0-59.999-40.055-41.577-71.987L246.423 23.985c18.467-32.009 64.72-31.951 83.154 0l239.94 416.028zM288 354c-25.405 0-46 20.595-46 46s20.595 46 46 46 46-20.595 46-46-20.595-46-46-46zm-43.673-165.346l7.418 136c.347 6.364 5.609 11.346 11.982 11.346h48.546c6.373 0 11.635-4.982 11.982-11.346l7.418-136c.375-6.874-5.098-12.654-11.982-12.654h-63.383c-6.884 0-12.356 5.78-11.981 12.654z"/></svg>
+            <span>Авария</span>
+        </div>
+        <div class="indicator" id="indicator-ready" title="Готов">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M256 512a256 256 0 1 1 0-512 256 256 0 1 1 0 512zM374 145.7c-10.7-7.8-25.7-5.4-33.5 5.3L221.1 315.2 169 263.1c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l72 72c5 5 11.8 7.5 18.8 7s13.4-4.1 17.5-9.8L379.3 179.2c7.8-10.7 5.4-25.7-5.3-33.5z"/></svg>
+            <span>Готов</span>
+        </div>
+        <div class="indicator" id="indicator-on" title="Включено">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M288 0c0-17.7-14.3-32-32-32S224-17.7 224 0l0 256c0 17.7 14.3 32 32 32s32-14.3 32-32L288 0zM146.3 98.4c14.5-10.1 18-30.1 7.9-44.6s-30.1-18-44.6-7.9C43.4 92.1 0 169 0 256 0 397.4 114.6 512 256 512S512 397.4 512 256c0-87-43.4-163.9-109.7-210.1-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6c49.8 34.8 82.3 92.4 82.3 157.6 0 106-86 192-192 192S64 362 64 256c0-65.2 32.5-122.9 82.3-157.6z"/></svg>
+            <span>ВКЛ</span>
+        </div>
+        <div class="indicator" id="indicator-off" title="Отключено">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M367.2 412.5L99.5 144.8c-22.4 31.4-35.5 69.8-35.5 111.2 0 106 86 192 192 192 41.5 0 79.9-13.1 111.2-35.5zm45.3-45.3c22.4-31.4 35.5-69.8 35.5-111.2 0-106-86-192-192-192-41.5 0-79.9 13.1-111.2 35.5L412.5 367.2zM0 256a256 256 0 1 1 512 0 256 256 0 1 1 -512 0z"/></svg>
+            <span>ОТКЛ</span>
+        </div>
     </div>
-    <div id="readResult"></div>
-  </div>
+	<div class="quick-main-actions">
+    <!-- Кнопки управления -->
 
-  <div class="card">
-    <h3>Запись регистра</h3>
-    <div class="row">
-      <input id="writeReg" type="number" value="10" />
-      <input id="writeVal" type="number" value="1" />
-      <button onclick="writeRegister()">Записать</button>
+    <button class="quick-main-action success" id="btn-off">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M288 0c0-17.7-14.3-32-32-32S224-17.7 224 0l0 256c0 17.7 14.3 32 32 32s32-14.3 32-32L288 0zM146.3 98.4c14.5-10.1 18-30.1 7.9-44.6s-30.1-18-44.6-7.9C43.4 92.1 0 169 0 256 0 397.4 114.6 512 256 512S512 397.4 512 256c0-87-43.4-163.9-109.7-210.1-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6c49.8 34.8 82.3 92.4 82.3 157.6 0 106-86 192-192 192S64 362 64 256c0-65.2 32.5-122.9 82.3-157.6z"/></svg>
+        <span>ВЫКЛ</span>
+    </button>
+    <button class="quick-main-action danger" id="btn-on">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M288 0c0-17.7-14.3-32-32-32S224-17.7 224 0l0 256c0 17.7 14.3 32 32 32s32-14.3 32-32L288 0zM146.3 98.4c14.5-10.1 18-30.1 7.9-44.6s-30.1-18-44.6-7.9C43.4 92.1 0 169 0 256 0 397.4 114.6 512 256 512S512 397.4 512 256c0-87-43.4-163.9-109.7-210.1-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6c49.8 34.8 82.3 92.4 82.3 157.6 0 106-86 192-192 192S64 362 64 256c0-65.2 32.5-122.9 82.3-157.6z"/></svg>
+        <span>ВКЛ</span>
+    </button>
+    <button class="quick-main-action" id="btn-reset">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M488 192l-144 0c-9.7 0-18.5-5.8-22.2-14.8s-1.7-19.3 5.2-26.2l46.7-46.7c-75.3-58.6-184.3-53.3-253.5 15.9-75 75-75 196.5 0 271.5s196.5 75 271.5 0c8.2-8.2 15.5-16.9 21.9-26.1 10.1-14.5 30.1-18 44.6-7.9s18 30.1 7.9 44.6c-8.5 12.2-18.2 23.8-29.1 34.7-100 100-262.1 100-362 0S-25 175 75 75c94.3-94.3 243.7-99.6 344.3-16.2L471 7c6.9-6.9 17.2-8.9 26.2-5.2S512 14.3 512 24l0 144c0 13.3-10.7 24-24 24z"/></svg>
+        <span>Сброс</span>
+    </button>
+</div>
+        
+        
+        
     </div>
-    <div id="writeResult"></div>
-  </div>
 
-  <script>
-    function readRegister() {
-      const reg = document.getElementById('readReg').value;
-      fetch('/api/read?reg=' + encodeURIComponent(reg))
-        .then(r => r.json())
-        .then(data => {
-          document.getElementById('readResult').innerHTML = data.ok
-            ? `<div class="ok">OK: reg=${data.reg}, value=${data.value} (0x${data.hex_value})</div>`
-            : `<div class="err">Ошибка чтения</div>`;
-        })
-        .catch(err => document.getElementById('readResult').innerHTML = `<div class="err">${err.message}</div>`);
+    <div class="main-content" id="content">
+        <div id="alerts"></div>
+
+<div class="quick-actions">
+    <button class="quick-action success" id="btn-login">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M345 273c9.4-9.4 9.4-24.6 0-33.9L201 95c-6.9-6.9-17.2-8.9-26.2-5.2S160 102.3 160 112l0 80-112 0c-26.5 0-48 21.5-48 48l0 32c0 26.5 21.5 48 48 48l112 0 0 80c0 9.7 5.8 18.5 14.8 22.2s19.3 1.7 26.2-5.2L345 273zm7 143c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0c53 0 96-43 96-96l0-256c0-53-43-96-96-96l-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0c17.7 0 32 14.3 32 32l0 256c0 17.7-14.3 32-32 32l-64 0z"/></svg>
+        <span>Вход</span>
+    </button>
+    <button class="quick-action" id="btn-logout">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M505 273c9.4-9.4 9.4-24.6 0-33.9L361 95c-6.9-6.9-17.2-8.9-26.2-5.2S320 102.3 320 112l0 80-112 0c-26.5 0-48 21.5-48 48l0 32c0 26.5 21.5 48 48 48l112 0 0 80c0 9.7 5.8 18.5 14.8 22.2s19.3 1.7 26.2-5.2L505 273zM160 96c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 32C43 32 0 75 0 128L0 384c0 53 43 96 96 96l64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0c-17.7 0-32-14.3-32-32l0-256c0-17.7 14.3-32 32-32l64 0z"/></svg>
+        <span>Выход</span>
+    </button>
+	<button class="quick-action" id="btn-export">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 448 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M256 32c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 210.7-41.4-41.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l96 96c12.5 12.5 32.8 12.5 45.3 0l96-96c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 242.7 256 32zM64 320c-35.3 0-64 28.7-64 64l0 32c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-32c0-35.3-28.7-64-64-64l-46.9 0-56.6 56.6c-31.2 31.2-81.9 31.2-113.1 0L110.9 320 64 320zm304 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"/></svg>
+		<span>Экспорт</span>
+	</button>
+	<button class="quick-action" id="btn-import">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 448 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M256 109.3L256 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-210.7-41.4 41.4c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3l96-96c12.5-12.5 32.8-12.5 45.3 0l96 96c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L256 109.3zM224 400c44.2 0 80-35.8 80-80l80 0c35.3 0 64 28.7 64 64l0 32c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64l0-32c0-35.3 28.7-64 64-64l80 0c0 44.2 35.8 80 80 80zm144 24a24 24 0 1 0 0-48 24 24 0 1 0 0 48z"/></svg>
+		<span>Импорт</span>
+	</button>
+</div>
+
+        <div id="content-area">
+            <div class="loading" style="padding: 40px; text-align: center;">
+                <div class="spinner"></div>
+                <span>Загрузка...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active" data-tab="dashboard">
+            <div class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M0 256a256 256 0 1 1 512 0 256 256 0 1 1 -512 0zM288 96a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zM256 416c35.3 0 64-28.7 64-64 0-16.2-6-31.1-16-42.3l69.5-138.9c5.9-11.9 1.1-26.3-10.7-32.2s-26.3-1.1-32.2 10.7L261.1 288.2c-1.7-.1-3.4-.2-5.1-.2-35.3 0-64 28.7-64 64s28.7 64 64 64zM176 144a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zM96 288a32 32 0 1 0 0-64 32 32 0 1 0 0 64zm352-32a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z"/></svg>
+            </div>
+            <span>Параметры</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="protection">
+            <div class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M256 0c4.6 0 9.2 1 13.4 2.9L457.8 82.8c22 9.3 38.4 31 38.3 57.2-.5 99.2-41.3 280.7-213.6 363.2-16.7 8-36.1 8-52.8 0-172.4-82.5-213.1-264-213.6-363.2-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.9 1 251.4 0 256 0zm0 66.8l0 378.1c138-66.8 175.1-214.8 176-303.4l-176-74.6 0 0z"/></svg>
+            </div>
+            <span>Уставки</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="signals">
+            <div class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 448 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M224 0c-17.7 0-32 14.3-32 32l0 3.2C119 50 64 114.6 64 192l0 21.7c0 48.1-16.4 94.8-46.4 132.4L7.8 358.3C2.7 364.6 0 372.4 0 380.5 0 400.1 15.9 416 35.5 416l376.9 0c19.6 0 35.5-15.9 35.5-35.5 0-8.1-2.7-15.9-7.8-22.2l-9.8-12.2C400.4 308.5 384 261.8 384 213.7l0-21.7c0-77.4-55-142-128-156.8l0-3.2c0-17.7-14.3-32-32-32zM162 464c7.1 27.6 32.2 48 62 48s54.9-20.4 62-48l-124 0z"/></svg>
+            </div>
+            <span>Сигналы</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="settings">
+            <div class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M195.1 9.5C198.1-5.3 211.2-16 226.4-16l59.8 0c15.2 0 28.3 10.7 31.3 25.5L332 79.5c14.1 6 27.3 13.7 39.3 22.8l67.8-22.5c14.4-4.8 30.2 1.2 37.8 14.4l29.9 51.8c7.6 13.2 4.9 29.8-6.5 39.9L447 233.3c.9 7.4 1.3 15 1.3 22.7s-.5 15.3-1.3 22.7l53.4 47.5c11.4 10.1 14 26.8 6.5 39.9l-29.9 51.8c-7.6 13.1-23.4 19.2-37.8 14.4l-67.8-22.5c-12.1 9.1-25.3 16.7-39.3 22.8l-14.4 69.9c-3.1 14.9-16.2 25.5-31.3 25.5l-59.8 0c-15.2 0-28.3-10.7-31.3-25.5l-14.4-69.9c-14.1-6-27.2-13.7-39.3-22.8L73.5 432.3c-14.4 4.8-30.2-1.2-37.8-14.4L5.8 366.1c-7.6-13.2-4.9-29.8 6.5-39.9l53.4-47.5c-.9-7.4-1.3-15-1.3-22.7s.5-15.3 1.3-22.7L12.3 185.8c-11.4-10.1-14-26.8-6.5-39.9L35.7 94.1c7.6-13.2 23.4-19.2 37.8-14.4l67.8 22.5c12.1-9.1 25.3-16.7 39.3-22.8L195.1 9.5zM256.3 336a80 80 0 1 0 -.6-160 80 80 0 1 0 .6 160z"/></svg>
+            </div>
+            <span>Настройки</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="log">
+            <div class="nav-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM224 160a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm-8 64l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24z"/></svg>
+            </div>
+            <span>Инфо</span>
+        </a>
+    </div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Редактирование</div>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <div class="modal-label">Текущее значение</div>
+                    <div class="modal-value" id="currentValue">--</div>
+                </div>
+                <div class="form-group">
+                    <label class="modal-label" id="newValueLabel">Новое значение</label>
+                    <input type="text" class="form-input" id="newValue" placeholder="Введите значение">
+                    <div id="valueHint" style="font-size: 0.8rem; color: var(--dark-gray); margin-top: 4px;"></div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" id="btnCancel">Отмена</button>
+                    <button class="btn btn-primary" id="btnSave">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Информация</div>
+                <button class="modal-close" id="infoModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <div class="modal-label">Название</div>
+                    <div style="font-weight: 500; margin-bottom: 10px;" id="infoName">--</div>
+                    <div class="modal-label">ID регистра</div>
+                    <div style="font-family: monospace; font-size: 1.1rem; margin-bottom: 10px;" id="infoId">--</div>
+                    <div class="modal-label">Формат</div>
+                    <div style="margin-bottom: 10px;" id="infoFormat">--</div>
+                    <div class="modal-label">Мин.</div>
+                    <div style="margin-bottom: 10px;" id="infoMin">--</div>
+                    <div class="modal-label">Макс.</div>
+                    <div style="margin-bottom: 10px;" id="infoMax">--</div>
+                    <div class="modal-label">По умолчанию</div>
+                    <div style="margin-bottom: 10px;" id="infoDefault">--</div>
+                    <div class="modal-label">Требуемый уровень</div>
+                    <div style="margin-bottom: 10px;" id="infoRequiredLevel">--</div>
+                    <div class="modal-label">Текущее значение</div>
+                    <div class="modal-value" id="infoValue">--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Авторизация</div>
+                <button class="modal-close" id="loginModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <div class="form-group password-input">
+                        <label class="modal-label">Пароль</label>
+                        <input type="password" class="form-input" id="loginPassword" placeholder="Введите пароль">
+                        <button type="button" class="password-toggle" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-secondary" id="btnLoginCancel">Отмена</button>
+                        <button class="btn btn-success" id="btnLoginSubmit">Войти</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+	
+	<!-- Модальное окно прогресса -->
+	<div class="modal-overlay" id="progressModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="progressTitle">Операция</div>
+				<button class="modal-close" id="progressModalClose">&times;</button>
+			</div>
+			<div class="modal-body">
+                <div id="progressStatus" style="margin-bottom:12px;font-weight:500;text-align:center;"></div>
+				<div class="progress-bar">
+				    <div id="progressFill"></div>
+				</div>
+				<div id="progressPercent">0%</div>
+			</div>
+		</div>
+	</div>
+
+    <script>
+        const CONFIG = {
+            refreshInterval: 2000,
+            baseUrl: 'http://192.168.4.1'
+        };
+
+        // Уровни доступа
+        const ACCESS_LEVELS = {
+            NONE: 0,
+            USER: 1,
+            SYSTEM: 2,
+            ADMIN: 3
+        };
+
+        const ACCESS_LEVEL_NAMES = {
+            [ACCESS_LEVELS.NONE]: 'Нет доступа',
+            [ACCESS_LEVELS.USER]: 'Пользователь',
+            [ACCESS_LEVELS.SYSTEM]: 'Системный',
+            [ACCESS_LEVELS.ADMIN]: 'Администратор'
+        };
+
+        const ACCESS_LEVEL_CLASSES = {
+            [ACCESS_LEVELS.NONE]: 'none',
+            [ACCESS_LEVELS.USER]: 'user',
+            [ACCESS_LEVELS.SYSTEM]: 'system',
+            [ACCESS_LEVELS.ADMIN]: 'admin'
+        };
+
+        // Карта требуемых уровней доступа для регистров
+        const ACCESS_REQUIREMENTS = {
+            // Базовые параметры
+            0: ACCESS_LEVELS.USER,   // Регистр команд
+            1: ACCESS_LEVELS.SYSTEM, // RS485 Адрес
+            2: ACCESS_LEVELS.SYSTEM, // RS485 Скорость
+            3: ACCESS_LEVELS.SYSTEM, // RS485 Таймаут
+            4: ACCESS_LEVELS.USER,   // Регистр пароля
+            5: ACCESS_LEVELS.SYSTEM, // RS485 MODBUS
+            8: ACCESS_LEVELS.SYSTEM, // МПУ Таймаут
+            
+            // Параметры времени
+            17: ACCESS_LEVELS.SYSTEM, // RTC секунды
+            18: ACCESS_LEVELS.SYSTEM, // RTC минуты
+            19: ACCESS_LEVELS.SYSTEM, // RTC часы
+            20: ACCESS_LEVELS.SYSTEM, // RTC дата
+            21: ACCESS_LEVELS.SYSTEM, // RTC месяц
+            22: ACCESS_LEVELS.SYSTEM, // RTC год
+            
+            // Управление входами/выходами (только для отладки)
+            23: ACCESS_LEVELS.SYSTEM, // Регистр реле
+            24: ACCESS_LEVELS.SYSTEM, // Внешние входы 1
+            25: ACCESS_LEVELS.SYSTEM, // Внешние входы 2
+            26: ACCESS_LEVELS.SYSTEM, // Внутренние входы
+            
+            // Параметры защит
+            39: ACCESS_LEVELS.USER,  // Порог несим. Uфаз
+            40: ACCESS_LEVELS.USER,  // Индикация напряж
+            47: ACCESS_LEVELS.USER,  // Порог несим. Iфаз
+            53: ACCESS_LEVELS.USER,  // Паралл. нагрузка
+            65: ACCESS_LEVELS.USER,  // Номинал. Uпит
+            66: ACCESS_LEVELS.USER,  // Номинал. Uлин
+            74: ACCESS_LEVELS.USER,  // Порог изм. Iпуска
+            75: ACCESS_LEVELS.USER,  // T фильтра парам
+            
+            // Защиты
+            115: ACCESS_LEVELS.USER, // МТЗ-1 управление
+            117: ACCESS_LEVELS.USER, // МТЗ-1 уставка
+            118: ACCESS_LEVELS.USER, // МТЗ-1 задержка
+            119: ACCESS_LEVELS.USER, // МТЗ-1 уставка ЛЗШ
+            120: ACCESS_LEVELS.USER, // МТЗ-1 задержка ЛЗШ
+            121: ACCESS_LEVELS.USER, // ЛЗШ-1 задержка
+            122: ACCESS_LEVELS.USER, // МТЗ-2 управление
+            124: ACCESS_LEVELS.USER, // МТЗ-2 уставка
+            125: ACCESS_LEVELS.USER, // МТЗ-2 задержка
+            126: ACCESS_LEVELS.USER, // МТЗ-3 управление
+            128: ACCESS_LEVELS.USER, // МТЗ-3 уставка
+            129: ACCESS_LEVELS.USER, // МТЗ-3 задержка
+            130: ACCESS_LEVELS.USER, // МТЗ-3 тип
+            131: ACCESS_LEVELS.USER, // УМТЗ управление
+            133: ACCESS_LEVELS.USER, // УМТЗ уставка
+            134: ACCESS_LEVELS.USER, // УМТЗ задержка
+            135: ACCESS_LEVELS.USER, // УМТЗ время работы
+            136: ACCESS_LEVELS.USER, // ЗМТ управление
+            138: ACCESS_LEVELS.USER, // ЗМТ уставка
+            139: ACCESS_LEVELS.USER, // ЗМТ задержка
+            140: ACCESS_LEVELS.USER, // ЗМТ включение
+            141: ACCESS_LEVELS.USER, // ЗМН управление
+            143: ACCESS_LEVELS.USER, // ЗМН Max уставка
+            144: ACCESS_LEVELS.USER, // ЗМН Max задержка
+            145: ACCESS_LEVELS.USER, // ЗМН Min уставка
+            146: ACCESS_LEVELS.USER, // ЗМН Min задержка
+            147: ACCESS_LEVELS.USER, // Uс.шин уставка
+            148: ACCESS_LEVELS.USER, // Uс.шин задержка
+            149: ACCESS_LEVELS.USER, // ЗНФ управление
+            151: ACCESS_LEVELS.USER, // ЗНФ уставка
+            152: ACCESS_LEVELS.USER, // ЗНФ задержка
+            153: ACCESS_LEVELS.USER, // ЗНФ включение
+            154: ACCESS_LEVELS.USER, // ЗОФ управление
+            156: ACCESS_LEVELS.USER, // ЗОФ уставка
+            157: ACCESS_LEVELS.USER, // ЗОФ задержка
+            158: ACCESS_LEVELS.USER, // ЗОФ включение
+            159: ACCESS_LEVELS.USER, // БКИ управление
+            161: ACCESS_LEVELS.USER, // БКИ уставка
+            162: ACCESS_LEVELS.USER, // БКИ задержка
+            163: ACCESS_LEVELS.USER, // БКИ включение
+            164: ACCESS_LEVELS.USER, // НЗЗ управление
+            166: ACCESS_LEVELS.USER, // НЗЗ уставка по I
+            167: ACCESS_LEVELS.USER, // НЗЗ уставка по U
+            168: ACCESS_LEVELS.USER, // НЗЗ задержка
+            169: ACCESS_LEVELS.USER, // НЗЗ угол мин
+            170: ACCESS_LEVELS.USER, // НЗЗ угол макс
+            171: ACCESS_LEVELS.USER, // EXT управление-1
+            172: ACCESS_LEVELS.USER, // EXT управление-2
+            174: ACCESS_LEVELS.USER, // EXT1 задержка
+            175: ACCESS_LEVELS.USER, // EXT2 задержка
+            176: ACCESS_LEVELS.USER, // EXT3 задержка
+            177: ACCESS_LEVELS.USER, // EXT4 задержка
+            178: ACCESS_LEVELS.USER, // EXT KZ задержка
+            179: ACCESS_LEVELS.USER, // INT управление
+            181: ACCESS_LEVELS.USER, // INT1 задержка
+            182: ACCESS_LEVELS.USER, // INT2 задержка
+            183: ACCESS_LEVELS.USER, // INT3 задержка
+            184: ACCESS_LEVELS.USER, // INT4 задержка
+            185: ACCESS_LEVELS.SYSTEM, // SWT управление
+            187: ACCESS_LEVELS.SYSTEM, // SWT_E задержка
+            188: ACCESS_LEVELS.SYSTEM, // Время реле ОТКЛ
+            189: ACCESS_LEVELS.SYSTEM, // Время реле ВКЛ
+            190: ACCESS_LEVELS.SYSTEM, // READY задержка
+            195: ACCESS_LEVELS.USER, // УРО управление
+            197: ACCESS_LEVELS.USER, // УРО уставка
+            198: ACCESS_LEVELS.USER, // УРО задержка
+            
+            // Диагностика
+            199: ACCESS_LEVELS.SYSTEM, // Диаг. управление
+            201: ACCESS_LEVELS.SYSTEM, // Диаг. БКИ уставка
+            202: ACCESS_LEVELS.SYSTEM, // Диаг. ДТ уставка
+            203: ACCESS_LEVELS.SYSTEM, // Диаг. ТНП уставка
+            204: ACCESS_LEVELS.SYSTEM, // Время диагност
+            
+            // АПВ/АВР
+            205: ACCESS_LEVELS.USER, // АПВ управление
+            207: ACCESS_LEVELS.USER, // АПВ время откл
+            208: ACCESS_LEVELS.USER, // АПВ время вкл
+            209: ACCESS_LEVELS.USER, // АПВ интервал
+            210: ACCESS_LEVELS.USER, // АВР управление
+            212: ACCESS_LEVELS.USER, // АВР задержка
+            
+            // Управление
+            213: ACCESS_LEVELS.USER, // Ctrl управление
+            216: ACCESS_LEVELS.USER, // Ctrl ПДУ1 время
+            217: ACCESS_LEVELS.USER, // Ctrl ПДУ2 время
+            218: ACCESS_LEVELS.USER, // Ctrl МПУ время
+            219: ACCESS_LEVELS.USER, // Ctrl STOP время
+            
+            // Конфигурация
+            220: ACCESS_LEVELS.SYSTEM, // Конфигурация БВР
+            221: ACCESS_LEVELS.SYSTEM, // Конфигурация ДТ
+            222: ACCESS_LEVELS.SYSTEM, // Конфигурация ТНП
+            223: ACCESS_LEVELS.SYSTEM, // Конфигурация МОД
+            224: ACCESS_LEVELS.SYSTEM, // Конфигурация ДП1
+            225: ACCESS_LEVELS.SYSTEM, // Конфигурация ДП2
+            226: ACCESS_LEVELS.SYSTEM, // Конфигурация ДП3
+            227: ACCESS_LEVELS.SYSTEM, // Конфигурация ДП4
+            228: ACCESS_LEVELS.SYSTEM, // Конфигурация ДП5
+            229: ACCESS_LEVELS.SYSTEM, // Конфигурация ДП6
+            230: ACCESS_LEVELS.SYSTEM, // Конфигурация ДП7
+            
+            // Калибровка
+            233: ACCESS_LEVELS.SYSTEM, // К трансформатора тока
+            234: ACCESS_LEVELS.SYSTEM, // Измерение тока В
+            235: ACCESS_LEVELS.ADMIN,  // Коррекция по U
+            236: ACCESS_LEVELS.ADMIN,  // Коррекция по I
+            237: ACCESS_LEVELS.ADMIN,  // Коррекция по P
+            238: ACCESS_LEVELS.ADMIN,  // Коррекция по R
+            239: ACCESS_LEVELS.ADMIN,  // Коррекция по I_0
+            240: ACCESS_LEVELS.ADMIN,  // Коррекция по Vab
+            241: ACCESS_LEVELS.ADMIN,  // Коррекция V400
+            242: ACCESS_LEVELS.ADMIN,  // Коррекция Temp
+            243: ACCESS_LEVELS.ADMIN,  // Сдвиг нуля Temp
+            244: ACCESS_LEVELS.ADMIN,  // Коррекция V 17
+            245: ACCESS_LEVELS.ADMIN,  // Коррекция по Ron
+            
+            // Отладка
+            247: ACCESS_LEVELS.ADMIN, // Режим отладки
+            248: ACCESS_LEVELS.ADMIN, // Тестовый байт0
+            249: ACCESS_LEVELS.ADMIN, // Тестовый байт1
+            250: ACCESS_LEVELS.ADMIN, // Тестовый байт2
+            251: ACCESS_LEVELS.ADMIN, // Тестовый байт3
+            252: ACCESS_LEVELS.ADMIN, // Тестовый байт4
+            253: ACCESS_LEVELS.ADMIN, // Период обновления
+            254: ACCESS_LEVELS.ADMIN, // Указатель макс
+        };
+
+        // Основная таблица регистров
+        const registerTable = [
+            {"id":0,"name":"Регистр команд","format":"DEC","scale":0,"min":0,"max":9999,"default":1234,"unit":"","editable":true,"properties":"XWPU"},
+            {"id":1,"name":"RS485 Адрес","format":"HEX","scale":2,"min":1,"max":255,"default":0x12,"unit":"","editable":true,"properties":"EWPS"},
+            {"id":2,"name":"RS485 Скорость, kbps","format":"DEC","scale":1,"min":1.2,"max":250.0,"default":115.2,"unit":"kbps","editable":true,"properties":"XEWPS"},
+            {"id":3,"name":"RS485 Таймаут, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"XEWPS"},
+            {"id":4,"name":"Регистр пароля","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"XW"},
+            {"id":5,"name":"RS485 MODBUS","format":"DEC","scale":0,"min":0,"max":1,"default":0,"unit":"","editable":true,"properties":"EWPS"},
+            {"id":6,"name":"RS485 Пак./сек.","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"пакет/с","editable":false,"properties":""},
+            {"id":7,"name":"Регистр команд МПУ","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":8,"name":"МПУ Таймаут, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"XEWPS"},
+            {"id":9,"name":"МПУ Пак./сек.","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"пакет/с","editable":false,"properties":""},
+            {"id":10,"name":"МТЗП номер","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":11,"name":"Месяц изготовлен","format":"DEC","scale":2,"min":0,"max":12.99,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":12,"name":"Регистр состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":13,"name":"Циклов main, ед.","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":14,"name":"Циклов АЦП, ед.","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":15,"name":"Циклов Input, ед.","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":16,"name":"RTC миллисекунды","format":"DEC","scale":0,"min":0,"max":59,"default":0,"unit":"мс","editable":false,"properties":""},
+            {"id":17,"name":"RTC секунды","format":"DEC","scale":0,"min":0,"max":59,"default":0,"unit":"с","editable":true,"properties":"XEWPS"},
+            {"id":18,"name":"RTC минуты","format":"DEC","scale":0,"min":0,"max":23,"default":0,"unit":"мин","editable":true,"properties":"XEWPS"},
+            {"id":19,"name":"RTC часы","format":"DEC","scale":0,"min":0,"max":23,"default":0,"unit":"ч","editable":true,"properties":"XEWPS"},
+            {"id":20,"name":"RTC дата","format":"DEC","scale":0,"min":1,"max":31,"default":0,"unit":"","editable":true,"properties":"XEWPS"},
+            {"id":21,"name":"RTC месяц","format":"DEC","scale":0,"min":1,"max":12,"default":0,"unit":"","editable":true,"properties":"XEWPS"},
+            {"id":22,"name":"RTC год","format":"DEC","scale":0,"min":0,"max":99,"default":0,"unit":"","editable":true,"properties":"XEWPS"},
+            {"id":23,"name":"Регистр реле","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"XEWPS"},
+            {"id":24,"name":"Внешние входы 1","format":"OCT","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"XEWPS"},
+            {"id":25,"name":"Внешние входы 2","format":"OCT","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"XEWPS"},
+            {"id":26,"name":"Внутренние входы","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"XEWPS"},
+            {"id":27,"name":"Входы пульта МПУ","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":28,"name":"Регистр аварий - 1","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":29,"name":"Регистр аварий - 2","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":30,"name":"Регистр неисправностей - 1","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":31,"name":"Регистр неисправностей - 2","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":32,"name":"Темпер. воздуха, °C","format":"SDC","scale":1,"min":-40,"max":125,"default":0,"unit":"°C","editable":false,"properties":""},
+            {"id":33,"name":"Напряжение фазы A, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":34,"name":"Напряжение фазы B, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":35,"name":"Напряжение фазы C, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":36,"name":"Макс. напряжение, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":37,"name":"Мин. напряжение, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":38,"name":"Несимметрия Uфаз, %","format":"DEC","scale":1,"min":0,"max":100,"default":0,"unit":"%","editable":false,"properties":""},
+            {"id":39,"name":"Порог несим. Uфаз, В","format":"DEC","scale":0,"min":0,"max":8000,"default":50,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":40,"name":"Индикация напряж","format":"BIN","scale":2,"min":0,"max":3,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":41,"name":"Ток фазы A, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
+            {"id":42,"name":"Ток фазы B, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
+            {"id":43,"name":"Ток фазы C, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
+            {"id":44,"name":"Максимальный ток, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
+            {"id":45,"name":"Минимальный ток, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
+            {"id":46,"name":"Несимметрия Iфаз, %","format":"DEC","scale":1,"min":0,"max":100,"default":0,"unit":"%","editable":false,"properties":""},
+            {"id":47,"name":"Порог несим. Iфаз, А","format":"DEC","scale":0,"min":0,"max":500,"default":5,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":48,"name":"Перегрузка по Iф, %","format":"DEC","scale":1,"min":0,"max":500,"default":0,"unit":"%","editable":false,"properties":""},
+            {"id":49,"name":"R изоляции ф. A, кОм","format":"DEC","scale":0,"min":0,"max":10000,"default":0,"unit":"кОм","editable":false,"properties":""},
+            {"id":50,"name":"R изоляции ф. B, кОм","format":"DEC","scale":0,"min":0,"max":10000,"default":0,"unit":"кОм","editable":false,"properties":""},
+            {"id":51,"name":"R изоляции ф. C, кОм","format":"DEC","scale":0,"min":0,"max":10000,"default":0,"unit":"кОм","editable":false,"properties":""},
+            {"id":52,"name":"Мин. Rизоляции, кОм","format":"DEC","scale":0,"min":0,"max":10000,"default":0,"unit":"кОм","editable":false,"properties":""},
+            {"id":53,"name":"Паралл. нагрузка","format":"SWT","scale":1,"min":0,"max":1,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":54,"name":"Мощность фазы A, кВт","format":"SDC","scale":1,"min":-1000,"max":1000,"default":0,"unit":"кВт","editable":false,"properties":""},
+            {"id":55,"name":"Мощность фазы B, кВт","format":"SDC","scale":1,"min":-1000,"max":1000,"default":0,"unit":"кВт","editable":false,"properties":""},
+            {"id":56,"name":"Мощность фазы C, кВт","format":"SDC","scale":1,"min":-1000,"max":1000,"default":0,"unit":"кВт","editable":false,"properties":""},
+            {"id":57,"name":"Мощность активн., кВт","format":"SDC","scale":1,"min":-1000,"max":1000,"default":0,"unit":"кВт","editable":false,"properties":""},
+            {"id":58,"name":"Мощность полная, кВА","format":"DEC","scale":1,"min":0,"max":2000,"default":0,"unit":"кВА","editable":false,"properties":""},
+            {"id":59,"name":"Коэф. мощности","format":"REL","scale":3,"min":0,"max":0.999,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":60,"name":"Напряжение нуля, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":61,"name":"Ток нулевой, mA","format":"DEC","scale":0,"min":0,"max":5000,"default":0,"unit":"мА","editable":false,"properties":""},
+            {"id":62,"name":"Угол между V и I, °","format":"SDC","scale":0,"min":-180,"max":180,"default":0,"unit":"°","editable":false,"properties":""},
+            {"id":63,"name":"Оперативное пит., В","format":"DEC","scale":1,"min":0,"max":300,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":64,"name":"Линейное напряж., В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":65,"name":"Номинал. Uпит., В","format":"DEC","scale":1,"min":30.0,"max":150.0,"default":100.0,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":66,"name":"Номинал. Uлин., В","format":"DEC","scale":0,"min":1250,"max":8000,"default":6000,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":67,"name":"Напряжение Vtst, В","format":"DEC","scale":1,"min":0,"max":1000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":68,"name":"Напряжение 17V, В","format":"DEC","scale":2,"min":0,"max":20,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":69,"name":"Напряжение 05V, В","format":"DEC","scale":2,"min":0,"max":6,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":70,"name":"Пульсация Iмакс, %","format":"DEC","scale":1,"min":0,"max":100,"default":0,"unit":"%","editable":false,"properties":""},
+            {"id":71,"name":"Ток пуска, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
+            {"id":72,"name":"Напряжение пуска, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":73,"name":"Время пуска, мсек","format":"DEC","scale":0,"min":0,"max":10000,"default":0,"unit":"мс","editable":false,"properties":""},
+            {"id":74,"name":"Порог изм. Iпуска, А","format":"DEC","scale":0,"min":0,"max":500,"default":10,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":75,"name":"T фильтра парам., мсек","format":"DEC","scale":0,"min":5,"max":9999,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":76,"name":"Код Аварии/Неиспр.","format":"DEC","scale":0,"min":0,"max":255,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":77,"name":"Счетчик Аварий","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":78,"name":"Счетчик Неиспр.","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":79,"name":"Циклов вкл./откл. КА","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":80,"name":"Энергия активная, кВт/ч","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"кВт·ч","editable":false,"properties":"E"},
+            {"id":81,"name":"Энергия активная, МВт/ч","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"МВт·ч","editable":false,"properties":"E"},
+            {"id":82,"name":"Энергия полная, кВА/ч","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"кВА·ч","editable":false,"properties":"E"},
+            {"id":83,"name":"Энергия полная, МВА/ч","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"МВА·ч","editable":false,"properties":"E"},
+            {"id":84,"name":"Отключение пит., мин/сек","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":85,"name":"Отключение пит., день/час","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":86,"name":"Включение пит., мин/сек","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":87,"name":"Включение пит., день/час","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":88,"name":"Отключение КА мин/сек","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":89,"name":"Отключение КА, день/час","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":90,"name":"Включение КА, мин/сек","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":91,"name":"Включение КА, день/час","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":92,"name":"Работа присоед., мин/сек","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":93,"name":"Работа присоед., день/час","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":94,"name":"Работа прис/сум., мин/сек","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":95,"name":"Работа прис/сум., день/час","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":96,"name":"Наработка блока, мин/сек","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":97,"name":"Наработка блока, день/час","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":98,"name":"Работа блока сум, мин/сек","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":99,"name":"Работа блока сум, день/час","format":"DEC","scale":2,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":100,"name":"Всего Аварий","format":"DEC","scale":0,"min":0,"max":200,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":101,"name":"Текущий протокол (аварии)","format":"DEC","scale":0,"min":0,"max":199,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":102,"name":"Всего Неисправн.","format":"DEC","scale":0,"min":0,"max":100,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":103,"name":"Текущий протокол (неиспр.)","format":"DEC","scale":0,"min":0,"max":99,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":104,"name":"Всего уставок","format":"DEC","scale":0,"min":0,"max":200,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":105,"name":"Текущий протокол (уставки)","format":"DEC","scale":0,"min":0,"max":199,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":106,"name":"Всего коммутаций","format":"DEC","scale":0,"min":0,"max":100,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":107,"name":"Текущий протокол (коммутаций)","format":"DEC","scale":0,"min":0,"max":99,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":108,"name":"Всего Вкл/Откл","format":"DEC","scale":0,"min":0,"max":100,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":109,"name":"Текущий протокол (питание)","format":"DEC","scale":0,"min":0,"max":99,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":110,"name":"Всего диагностик","format":"DEC","scale":0,"min":0,"max":100,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":111,"name":"Текущий протокол (диагностика)","format":"DEC","scale":0,"min":0,"max":99,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":112,"name":"Всего мощности","format":"DEC","scale":0,"min":0,"max":600,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":113,"name":"Текущий протокол (мощность)","format":"DEC","scale":0,"min":0,"max":599,"default":0,"unit":"","editable":false,"properties":"E"},
+            {"id":114,"name":"Период записи Р, сек.","format":"DEC","scale":0,"min":0,"max":65535,"default":100,"unit":"с","editable":true,"properties":"EWP"},
+            {"id":115,"name":"МТЗ-1 Р. управлен.","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWP"},
+            {"id":116,"name":"МТЗ-1 Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":117,"name":"МТЗ-1 Уставка, A","format":"DEC","scale":0,"min":0,"max":3000,"default":1500,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":118,"name":"МТЗ-1 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":20,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":119,"name":"МТЗ-1 Уставка ЛЗШ, A","format":"DEC","scale":0,"min":0,"max":3000,"default":2000,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":120,"name":"МТЗ-1 Задержка ЛЗШ, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":200,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":121,"name":"ЛЗШ-1 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":50,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":122,"name":"МТЗ-2 Р. управлен.","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":123,"name":"МТЗ-2 Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":124,"name":"МТЗ-2 Уставка, A","format":"DEC","scale":0,"min":0,"max":3000,"default":200,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":125,"name":"МТЗ-2 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":126,"name":"МТЗ-3 Р. управлен.","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":127,"name":"МТЗ-3 Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":128,"name":"МТЗ-3 Уставка, A","format":"DEC","scale":0,"min":0,"max":3000,"default":150,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":129,"name":"МТЗ-3 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":130,"name":"МТЗ-3 Тип характеристики","format":"DEC","scale":0,"min":0,"max":5,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":131,"name":"УМТЗ Р. управлен.","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":132,"name":"УМТЗ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":133,"name":"УМТЗ Уставка, A","format":"DEC","scale":0,"min":0,"max":3000,"default":200,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":134,"name":"УМТЗ Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":500,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":135,"name":"УМТЗ Время работы, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":136,"name":"ЗМТ Р. управлен.","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":137,"name":"ЗМТ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":138,"name":"ЗМТ Уставка, A","format":"DEC","scale":0,"min":0,"max":3000,"default":5,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":139,"name":"ЗМТ Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":140,"name":"ЗМТ Включение, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":141,"name":"ЗМН Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000F,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":142,"name":"ЗМН Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":143,"name":"ЗМН Max Уставка, В","format":"DEC","scale":0,"min":0,"max":8000,"default":8000,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":144,"name":"ЗМН Max Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":145,"name":"ЗМН Min Уставка, В","format":"DEC","scale":0,"min":0,"max":8000,"default":5000,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":146,"name":"ЗМН Min Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":147,"name":"Uс.шин Уставка, В","format":"DEC","scale":0,"min":0,"max":8000,"default":2500,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":148,"name":"Uс.шин Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":149,"name":"ЗНФ Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":150,"name":"ЗНФ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":151,"name":"ЗНФ Уставка, %","format":"DEC","scale":1,"min":0.0,"max":99.9,"default":20.0,"unit":"%","editable":true,"properties":"EWPU"},
+            {"id":152,"name":"ЗНФ Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":153,"name":"ЗНФ Включение, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":154,"name":"ЗОФ Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":155,"name":"ЗОФ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":156,"name":"ЗОФ Уставка, %","format":"DEC","scale":1,"min":0.0,"max":99.9,"default":20.0,"unit":"%","editable":true,"properties":"EWPU"},
+            {"id":157,"name":"ЗОФ Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":158,"name":"ЗОФ Включение, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":159,"name":"БКИ Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x0001,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":160,"name":"БКИ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":161,"name":"БКИ Уставка, кОм","format":"DEC","scale":0,"min":0,"max":10000,"default":350,"unit":"кОм","editable":true,"properties":"EWPU"},
+            {"id":162,"name":"БКИ Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":163,"name":"БКИ Включение, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":164,"name":"НЗЗ Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":165,"name":"НЗЗ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":166,"name":"НЗЗ Уставка по I, mA","format":"DEC","scale":0,"min":0,"max":5000,"default":100,"unit":"мА","editable":true,"properties":"EWPU"},
+            {"id":167,"name":"НЗЗ Уставка по U, В","format":"DEC","scale":0,"min":0,"max":8000,"default":500,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":168,"name":"НЗЗ Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":169,"name":"НЗЗ Угол Мин., °","format":"SDC","scale":0,"min":-180,"max":180,"default":-30,"unit":"°","editable":true,"properties":"EWPU"},
+            {"id":170,"name":"НЗЗ Угол Макс., °","format":"SDC","scale":0,"min":-180,"max":180,"default":30,"unit":"°","editable":true,"properties":"EWPU"},
+            {"id":171,"name":"EXT Р. управления-1","format":"HEX","scale":4,"min":0,"max":65535,"default":0x7777,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":172,"name":"EXT Р. управления-2","format":"HEX","scale":4,"min":0,"max":65535,"default":0x07FE,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":173,"name":"EXT Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0x07FE,"unit":"","editable":false,"properties":""},
+            {"id":174,"name":"EXT1 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":175,"name":"EXT2 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":176,"name":"EXT3 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":177,"name":"EXT4 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":178,"name":"EXT KZ Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":5000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":179,"name":"INT Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":180,"name":"INT Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":181,"name":"INT1 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":182,"name":"INT2 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":183,"name":"INT3 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":184,"name":"INT4 Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":185,"name":"SWT Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPS"},
+            {"id":186,"name":"SWT Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":187,"name":"SWT_E Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":500,"unit":"мс","editable":true,"properties":"EWPS"},
+            {"id":188,"name":"Время реле ОТКЛ, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":250,"unit":"мс","editable":true,"properties":"EWPS"},
+            {"id":189,"name":"Время реле ВКЛ, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":250,"unit":"мс","editable":true,"properties":"EWPS"},
+            {"id":190,"name":"READY Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":2000,"unit":"мс","editable":true,"properties":"EWPS"},
+            {"id":191,"name":"Причина отключ.","format":"DEC","scale":0,"min":0,"max":255,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":192,"name":"Причина включен.","format":"DEC","scale":0,"min":0,"max":255,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":193,"name":"Время отключения, мсек","format":"DEC","scale":1,"min":0,"max":10000,"default":0,"unit":"мс","editable":false,"properties":""},
+            {"id":194,"name":"Время включения, мсек","format":"DEC","scale":1,"min":0,"max":10000,"default":0,"unit":"мс","editable":false,"properties":""},
+            {"id":195,"name":"УРО Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x0003,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":196,"name":"УРО Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":197,"name":"УРО Уставка по I, A","format":"DEC","scale":0,"min":0,"max":3000,"default":50,"unit":"А","editable":true,"properties":"EWPU"},
+            {"id":198,"name":"УРО Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":199,"name":"Диаг. управление","format":"HEX","scale":4,"min":0,"max":65535,"default":0x0331,"unit":"","editable":true,"properties":"EWPS"},
+            {"id":200,"name":"Диаг. Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0x0331,"unit":"","editable":false,"properties":""},
+            {"id":201,"name":"Диаг. БКИ Уставка, кОм","format":"DEC","scale":0,"min":10,"max":9999,"default":150,"unit":"кОм","editable":true,"properties":"EWPS"},
+            {"id":202,"name":"Диаг. ДТ Уставка, A","format":"DEC","scale":0,"min":30,"max":3000,"default":30,"unit":"А","editable":true,"properties":"EWPS"},
+            {"id":203,"name":"Диаг. ТНП Уставка, mA","format":"DEC","scale":0,"min":50,"max":5000,"default":500,"unit":"мА","editable":true,"properties":"EWPS"},
+            {"id":204,"name":"Время диагност., мсек","format":"DEC","scale":0,"min":200,"max":9999,"default":200,"unit":"мс","editable":true,"properties":"EWPS"},
+            {"id":205,"name":"АПВ управление","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":206,"name":"АПВ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":207,"name":"АПВ Время откл., сек.","format":"DEC","scale":0,"min":20,"max":65535,"default":100,"unit":"с","editable":true,"properties":"EWPU"},
+            {"id":208,"name":"АПВ Время вкл., мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":500,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":209,"name":"АПВ Интервал вкл, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":15000,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":210,"name":"АВР управление","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":211,"name":"АВР Р. состояния","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":212,"name":"АВР Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":100,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":213,"name":"Ctrl управление","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000C,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":214,"name":"Ctrl Р. состоян-1","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":215,"name":"Ctrl Р. состоян-2","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":216,"name":"Ctrl ПДУ1 Время, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":217,"name":"Ctrl ПДУ2 Время, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":218,"name":"Ctrl МПУ Время, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":219,"name":"Ctrl STOP Время, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"мс","editable":true,"properties":"EWPU"},
+            {"id":220,"name":"Конфигурация БВР","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":221,"name":"Конфигурация ДТ","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":222,"name":"Конфигурация ТНП","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":223,"name":"Конфигурация МОД","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":224,"name":"Конфигурация ДП1","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":225,"name":"Конфигурация ДП2","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":226,"name":"Конфигурация ДП3","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":227,"name":"Конфигурация ДП4","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":228,"name":"Конфигурация ДП5","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":229,"name":"Конфигурация ДП6","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":230,"name":"Конфигурация ДП7","format":"HEX","scale":1,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":231,"name":"Ток отключения по МТЗ, А","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"А","editable":false,"properties":""},
+            {"id":232,"name":"Уставка защиты МТЗ, А","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"А","editable":false,"properties":""},
+            {"id":233,"name":"К трансформатора тока","format":"DEC","scale":1,"min":1.0,"max":65535,"default":200.0,"unit":"","editable":true,"properties":"EWPS"},
+            {"id":234,"name":"Измерение тока В","format":"SWT","scale":1,"min":0,"max":10,"default":0,"unit":"","editable":true,"properties":"EWPS"},
+            {"id":235,"name":"Коррекция по U, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":236,"name":"Коррекция по I, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":237,"name":"Коррекция по Р, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":238,"name":"Коррекция по R, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":239,"name":"Коррекция по I_0, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":240,"name":"Коррекция по Vab, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":241,"name":"Коррекция V400, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":242,"name":"Коррекция Temp, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":243,"name":"Сдвиг нуля Temp, °C","format":"SDC","scale":1,"min":-10,"max":10,"default":0,"unit":"°C","editable":true,"properties":"EWPU"},
+            {"id":244,"name":"Коррекция V 17, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":245,"name":"Коррекция по Ron, ед","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"EWPU"},
+            {"id":246,"name":"Время прерывания, uS","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"мкс","editable":false,"properties":""},
+            {"id":247,"name":"Режим отладки","format":"HEX","scale":4,"min":0,"max":65535,"default":0x0003,"unit":"","editable":true,"properties":"EWPA"},
+            {"id":248,"name":"Тестовый байт0","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"W"},
+            {"id":249,"name":"Тестовый байт1","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"W"},
+            {"id":250,"name":"Тестовый байт2","format":"SDC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"W"},
+            {"id":251,"name":"Тестовый байт3","format":"SDC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"W"},
+            {"id":252,"name":"Тестовый байт4","format":"SDC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":true,"properties":"W"},
+            {"id":253,"name":"Период обновлен.,мсек","format":"DEC","scale":0,"min":0,"max":200,"default":200,"unit":"мс","editable":true,"properties":"EWPA"},
+            {"id":254,"name":"Указатель макс.","format":"DEC","scale":0,"min":1,"max":1019,"default":1019,"unit":"","editable":true,"properties":"EWPA"},
+            {"id":255,"name":"Указатель внешн.","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":256,"name":"Переменная1","format":"SDC","scale":0,"min":-1000,"max":1000,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":257,"name":"Переменная2","format":"SDC","scale":0,"min":-1000,"max":1000,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":258,"name":"Переменная3","format":"SDC","scale":0,"min":-1000,"max":1000,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":259,"name":"Переменная4","format":"SDC","scale":0,"min":-1000,"max":1000,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":260,"name":"ADC 0 (UA lo)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":261,"name":"ADC 1 (UA hi)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":262,"name":"ADC 2 (UB lo)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":263,"name":"ADC 3 (UB hi)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":264,"name":"ADC 4 (UC lo)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":265,"name":"ADC 5 (UC hi)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":266,"name":"ADC 6 (IA lo)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":267,"name":"ADC 7 (IA hi)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":268,"name":"ADC 8 (IC lo)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":269,"name":"ADC 9 (IC hi)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":270,"name":"ADC 10 (3U_0)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":271,"name":"ADC 11 (3I_0)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":272,"name":"ADC 12 (U_AB)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":273,"name":"ADC 13 (Vtst)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":274,"name":"ADC 14 (Temp)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":275,"name":"ADC 15 (free)","format":"DEC","scale":0,"min":0,"max":4095,"default":0,"unit":"","editable":false,"properties":""},
+            {"id":276,"name":"Параметров FRAM","format":"DEC","scale":0,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""}
+        ];
+
+        const registerIndex = new Map(registerTable.map(item => [item.id, item]));
+		
+		// === НОВАЯ КОНСТАНТА: описание битов для регистров управления ===
+const BIT_REGISTERS = {
+            115: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" },
+                { bit: 4,  label: "Вход ЛЗШ" },
+                { bit: 5,  label: "Выход ЛЗШ" },
+                { bit: 6,  label: "Внешний вход" },
+                { bit: 7,  label: "Порог Rmin" }
+            ],
+            122: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" }
+            ],
+            126: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" }
+            ],
+            131: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" }
+            ],
+            136: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" }
+            ],
+            141: [
+                { bit: 0,  label: "ЗМН Макс: Защита введена" },
+                { bit: 1,  label: "ЗМН Мин: Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" }
+            ],
+            149: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" }
+            ],
+            154: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" }
+            ],
+            159: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" }
+            ],
+            164: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" },
+                { bit: 4,  label: "Канал I введен" },
+                { bit: 5,  label: "Канал U введен" },
+                { bit: 6,  label: "Угол U-I введен" }
+            ],
+            171: [
+                { bit: 0,  label: "Внешняя защита 1: Защита введена" },
+                { bit: 1,  label: "Внешняя защита 1: Отключение" },
+                { bit: 2,  label: "Внешняя защита 1: Фиксация" },
+                { bit: 3,  label: "Внешняя защита 1: Порог Rmin" },
+                { bit: 4,  label: "Внешняя защита 2: Защита введена" },
+                { bit: 5,  label: "Внешняя защита 2: Отключение" },
+                { bit: 6,  label: "Внешняя защита 2: Фиксация" },
+                { bit: 7,  label: "Внешняя защита 2: Порог Rmin" },
+                { bit: 8,  label: "Внешняя защита 3: Защита введена" },
+                { bit: 9,  label: "Внешняя защита 3: Отключение" },
+                { bit: 10, label: "Внешняя защита 3: Фиксация" },
+                { bit: 11, label: "Внешняя защита 3: Порог Rmin" },
+                { bit: 12, label: "Внешняя защита 4: Защита введена" },
+                { bit: 13, label: "Внешняя защита 4: Отключение" },
+                { bit: 14, label: "Внешняя защита 4: Фиксация" },
+                { bit: 15, label: "Внешняя защита 4: Порог Rmin" }
+            ],
+            172: [
+                { bit: 0,  label: "Защита по замыканию: Защита введена" },
+                { bit: 1,  label: "Защита по замыканию: Отключение" },
+                { bit: 2,  label: "Защита по замыканию: Фиксация" },
+                { bit: 4,  label: "Защита по замыканию: Учет вход1 (ПДУ1)" },
+                { bit: 5,  label: "Защита по замыканию: Учет вход2 (ПДУ2)" },
+                { bit: 6,  label: "Защита по замыканию: Учет вход3 (EXT1)" },
+                { bit: 7,  label: "Защита по замыканию: Учет вход4 (EXT2)" },
+                { bit: 8,  label: "Защита по замыканию: Учет вход5 (EXT3)" },
+                { bit: 9,  label: "Защита по замыканию: Учет вход6 (ЛЗШ)" },
+                { bit: 10, label: "Защита по замыканию: Учет вход7 (EXT4)" }
+            ],
+            179: [
+                { bit: 0,  label: "Местная защита 1 (контроль БП): Защита введена" },
+                { bit: 1,  label: "Местная защита 1 (контроль БП): Отключение" },
+                { bit: 2,  label: "Местная защита 1 (контроль БП): Фиксация" },
+                { bit: 3,  label: "Местная защита 1 (контроль БП): Инверсия" },
+                { bit: 4,  label: "Местная защита 2 (дуговая защита): Защита введена" },
+                { bit: 5,  label: "Местная защита 2 (дуговая защита): Отключение" },
+                { bit: 6,  label: "Местная защита 2 (дуговая защита): Фиксация" },
+                { bit: 7,  label: "Местная защита 2 (дуговая защита): Инверсия" },
+                { bit: 8,  label: "Местная защита 3 (МТЗ прямого действия): Защита введена" },
+                { bit: 9,  label: "Местная защита 3 (МТЗ прямого действия): Отключение" },
+                { bit: 10, label: "Местная защита 3 (МТЗ прямого действия): Фиксация" },
+                { bit: 11, label: "Местная защита 3 (МТЗ прямого действия): Инверсия" },
+                { bit: 12, label: "Местная защита 4 (Внутренняя авария): Защита введена" },
+                { bit: 13, label: "Местная защита 4 (Внутренняя авария): Отключение" }
+            ],
+            185: [
+                { bit: 0,  label: "Контроль КА: Защита введена" },
+                { bit: 1,  label: "Контроль КА: Фиксация" },
+                { bit: 2,  label: "Контроль КА: Отключение" }
+            ],
+            195: [
+                { bit: 0,  label: "Защита введена" },
+                { bit: 1,  label: "Канал I введен" },
+                { bit: 2,  label: "Фиксация" },
+                { bit: 3,  label: "Отключение" },
+                { bit: 6,  label: "Учет Внешняя защита 1" },
+                { bit: 7,  label: "Учет Внешняя защита 2" },
+                { bit: 8,  label: "Учет Внешняя защита 3" },
+                { bit: 9,  label: "Учет Внешняя защита 4" },
+                { bit: 10, label: "Учет ЗММН минимум" },
+                { bit: 11, label: "Учет ЗММН максимум" },
+                { bit: 12, label: "Учет ЗОФ" },
+                { bit: 13, label: "Учет ЗНФ" },
+                { bit: 14, label: "Учет НЗЗ" },
+                { bit: 15, label: "Учет ЗМТ" }
+            ],
+            199: [
+                { bit: 0,  label: "Тест канала БКИ: Самодиагностика БКИ при включении" },
+                { bit: 4,  label: "Тест датчиков тока: Самодиагностика МТЗ при включении" },
+                { bit: 5,  label: "Тест датчиков тока: Диагностика МТЗ при включенном КА" },
+                { bit: 6,  label: "Тест датчиков тока: Отключение КА при успешном завершении диагностики МТЗ" },
+                { bit: 8,  label: "Тест датчика ТНП: Самодиагностика НЗЗ при включении" },
+                { bit: 9,  label: "Тест датчика ТНП: Диагностика НЗЗ при включенном КА" },
+                { bit: 10,  label: "Тест датчика ТНП: Отключение КА при успешном завершении диагностики" }
+            ],
+            205: [
+                { bit: 0,  label: "АПВ: Режим АПВ введен" },
+                { bit: 1,  label: "АПВ: Без ограничения времени" },
+                { bit: 3,  label: "АПВ: Включение по АПВ взведено" }
+            ],
+            210: [
+                { bit: 0,  label: "АВР: АВР введен" },
+                { bit: 2,  label: "АВР: Внешний вход" }
+            ],
+            213: [
+                { bit: 0,  label: "Режим управления: ПДУ1" },
+                { bit: 1,  label: "Режим управления: ПДУ2" },
+                { bit: 2,  label: "Режим управления: МПУ" },
+                { bit: 3,  label: "Режим управления: Телеуправление" },
+                { bit: 4,  label: "Режим искробезопасной клавиатуры на входе 2" },
+                { bit: 5,  label: "Режим управления: Контактор" },
+                { bit: 6,  label: "Режим управления: Реверсивный блок" },
+                { bit: 7,  label: "Режим управления: ПДУ1 + ПДУ-2" },
+                { bit: 8,  label: "Режим искробезопасной клавиатуры на входе 3" },
+                { bit: 9,  label: "Режим искробезопасной клавиатуры на входе 4" },
+                { bit: 10, label: "Режим искробезопасной клавиатуры на входе 1" }
+            ]
+        };
+
+        const tabContent = {
+            dashboard: {
+			    title: "Текущие параметры",
+				groups: [
+   				    { title: "Фазные токи", registers: [41, 42, 43, 44, 45, 46, 48, 47, 233] },
+					{ title: "Фазные напряжения", registers: [33, 34, 35, 36, 37, 38, 39, 40] },
+					{ title: "Сопротивление изоляции", registers: [49, 50, 51, 52, 53] },
+					{ title: "Потребляемая мощность", registers: [54, 55, 56, 57, 58, 59, 80, 81, 82, 83] },
+					{ title: "Линейное напряжение", registers: [63, 64, 65, 66] },
+					{ title: "Время наработки", registers: [92, 93, 94, 95, 96, 97, 98, 99] },
+					{ title: "Прочие параметры", registers: [32, 60, 61, 62, 70, 71, 72, 73, 74, 4] }
+				]
+			},
+            protection: {
+                title: "Настройки защит",
+                groups: [
+       				{ title: "МТЗ-1", registers: [115, 117, 118, 119, 120, 121] },
+					{ title: "МТЗ-2", registers: [122, 124, 125] },
+					{ title: "МТЗ-3", registers: [126, 128, 129, 130] },
+					{ title: "УМТЗ", registers: [131, 133, 134, 135] },
+					{ title: "ЗМТ", registers: [136, 138, 139, 140] },
+					{ title: "ЗММН", registers: [141, 143, 144, 145, 146, 147, 148] },
+					{ title: "ЗНФ", registers: [149, 151, 152, 153] },
+					{ title: "ЗОФ", registers: [154, 156, 157, 158] },
+					{ title: "БКИ", registers: [159, 161, 162, 163] },
+					{ title: "НЗЗ", registers: [164, 166, 167, 168, 169, 170] },
+					{ title: "Внешние защиты", registers: [171, 172, 174, 175, 176, 177, 178] },
+					{ title: "Местные защиты", registers: [179, 181, 182, 183, 184] },
+					{ title: "Контроль КА", registers: [185, 187] },
+					{ title: "УРОВ", registers: [195, 197, 198] }
+				]
+            },
+            signals: {
+                title: "Контроль сигналов",
+                groups: [
+				    { title: "Релейные выходы", registers: [23] },
+			    	{ title: "Внешние входы 1", registers: [24] },
+					{ title: "Внешние входы 2", registers: [25] },
+					{ title: "Внутренние входы", registers: [26] },
+					{ title: "Входы пульта МПУ", registers: [27] }
+                ]
+            },
+            settings: {
+                title: "Настройки",
+                groups: [
+    				{ title: "Присоединение", registers: [65, 66, 233, 234, 47, 39, 53, 74, 40] },
+					{ title: "Режим управления", registers: [213] },
+					{ title: "Настройки АПВ", registers: [205, 207, 208, 209] },   
+					{ title: "Настройки АВР", registers: [210, 212] },
+					{ title: "Настройки управления КА", registers: [216, 217, 218, 219, 188, 189, 190] },
+					{ title: "Конфигурация оборудования", registers: [220, 221, 222, 223, 224, 225, 226, 227, 228, 229] },
+					{ title: "Калибровка", registers: [235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245] },
+					{ title: "Самодиагностика", registers: [199, 201, 202, 203, 204] }
+                ]
+            },
+			log: { 
+			    title: "Журнал событий",
+				groups: [
+				    { title: "Журналы Аварий и Неисправностей", registers: [100, 101, 102, 103] },
+					{ title: "Изменение уставок", registers: [104, 105] },
+					{ title: "Включения/Отключения КА", registers: [106, 107] },
+					{ title: "Включения/Отключения питания МТЗП", registers: [108, 109] },
+					{ title: "Самодиагностика МТЗП", registers: [110, 111] },
+					{ title: "Потребляемая мощность", registers: [112, 113, 114] },
+                    { title: "Информация об изделии", registers: [10, 11, 12] }
+				]
+			}
+        };
+
+        // Состояние приложения
+        let currentTab = 'dashboard';
+        let currentRegister = null;
+        let valuesCache = new Map();
+        let refreshTimer = null;
+        let authTimer = null;
+        
+        // Информация об авторизации
+        let currentAuth = {
+            level: ACCESS_LEVELS.NONE,
+            timeLeft: 0,
+            expiresAt: null
+        };
+
+// ====================== ЭКСПОРТ / ИМПОРТ ======================
+const EXPORT_IMPORT_REGISTERS = [
+    39, 40, 47, 53, 65, 66, 74, 75, 114, 115, 117, 118, 119, 120, 121,
+    122, 124, 125, 126, 128, 129, 130, 131, 133, 134, 135, 136, 138, 139,
+    140, 141, 143, 144, 145, 146, 147, 148, 149, 151, 152, 153, 154, 156,
+    157, 158, 159, 161, 162, 163, 164, 166, 167, 168, 169, 170, 171, 172,
+    174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 187, 188, 189,
+    190, 195, 197, 198, 199, 201, 202, 203, 204, 205, 207, 208, 209, 210,
+    212, 213, 216, 217, 218, 219
+];
+
+function showProgressModal(title) {
+    document.getElementById('progressTitle').textContent = title;
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressPercent').textContent = '0%';
+    document.getElementById('progressStatus').textContent = 'Подготовка...';
+    document.getElementById('progressModal').classList.add('active');
+}
+
+function updateProgress(percent, statusText = '') {
+    document.getElementById('progressFill').style.width = percent + '%';
+    document.getElementById('progressPercent').textContent = percent + '%';
+    if (statusText) document.getElementById('progressStatus').textContent = statusText;
+}
+
+function closeProgressModal() {
+    document.getElementById('progressModal').classList.remove('active');
+}
+
+// Экспорт
+async function exportRegisters() {
+    showProgressModal('Экспорт уставок в JSON');
+    const data = {};
+    let ok = 0, err = 0;
+
+    for (let i = 0; i < EXPORT_IMPORT_REGISTERS.length; i++) {
+        const reg = EXPORT_IMPORT_REGISTERS[i];
+        updateProgress(Math.round((i + 1) / EXPORT_IMPORT_REGISTERS.length * 100), `Чтение #${reg}...`);
+
+        try {
+            const r = await fetch(`${CONFIG.baseUrl}/api/read?reg=${reg}`);
+            if (r.ok) {
+                const j = await r.json();
+                if (j.ok) {
+                    data[reg] = j.value;
+                    ok++;
+                } else err++;
+            } else err++;
+        } catch (e) {
+            err++;
+            console.error(e);
+        }
     }
 
-    function writeRegister() {
-      const reg = document.getElementById('writeReg').value;
-      const val = document.getElementById('writeVal').value;
-      fetch('/api/write?reg=' + encodeURIComponent(reg) + '&val=' + encodeURIComponent(val), { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-          document.getElementById('writeResult').innerHTML = data.ok
-            ? `<div class="ok">OK: reg=${data.reg}, value=${data.value}</div>`
-            : `<div class="err">Ошибка записи</div>`;
-        })
-        .catch(err => document.getElementById('writeResult').innerHTML = `<div class="err">${err.message}</div>`);
+    closeProgressModal();
+
+    if (ok === 0) {
+        showAlert('Не удалось прочитать ни один регистр', 'error');
+        return;
     }
-  </script>
+
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mtzp_settings_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showAlert(`Экспорт завершён: ${ok} регистров, ошибок: ${err}`, err ? 'warning' : 'success');
+}
+
+// Импорт
+async function importRegisters(file) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        let data;
+        try {
+            data = JSON.parse(e.target.result);
+        } catch (err) {
+            showAlert('Некорректный JSON-файл', 'error');
+            return;
+        }
+
+        const regIds = Object.keys(data)
+            .map(Number)
+            .filter(id => EXPORT_IMPORT_REGISTERS.includes(id));
+
+        if (regIds.length === 0) {
+            showAlert('В файле нет подходящих регистров', 'warning');
+            return;
+        }
+
+        showProgressModal('Импорт уставок из JSON');
+        let ok = 0, err = 0;
+
+        for (let i = 0; i < regIds.length; i++) {
+            const reg = regIds[i];
+            const val = data[reg];
+            updateProgress(Math.round((i + 1) / regIds.length * 100), `Запись #${reg}...`);
+
+            try {
+                const r = await fetch(`${CONFIG.baseUrl}/api/write?reg=${reg}&val=${val}`, { method: 'POST' });
+                const j = await r.json();
+                if (j.ok) {
+                    ok++;
+                    valuesCache.set(reg, val);
+                } else err++;
+            } catch (e) {
+                err++;
+                console.error(e);
+            }
+        }
+
+        closeProgressModal();
+        showAlert(`Импорт завершён: ${ok} записано, ошибок: ${err}`, err ? 'warning' : 'success');
+        refreshTabValues();   // обновляем текущую вкладку
+    };
+    reader.readAsText(file);
+}
+
+// Вспомогательная функция для кнопки импорта
+function triggerImport() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = (e) => {
+        if (e.target.files.length > 0) importRegisters(e.target.files[0]);
+    };
+    input.click();
+}
+
+        // Элементы DOM
+        const contentArea = document.getElementById('content-area');
+        const navItems = document.querySelectorAll('.nav-item');
+        const editModal = document.getElementById('editModal');
+        const infoModal = document.getElementById('infoModal');
+        const loginModal = document.getElementById('loginModal');
+        const alertsContainer = document.getElementById('alerts');
+        const authLevelElement = document.getElementById('authLevel');
+        const authTimeElement = document.getElementById('authTime');
+
+        // Функции для работы с авторизацией
+        function getPasswordValue(level) {
+            switch(parseInt(level)) {
+                case 1: return 300; // Пользователь - 300 секунд
+                case 2: return 600; // Системный - 600 секунд
+                case 3: return 900; // Администратор - 900 секунд
+                default: return 0;
+            }
+        }
+
+        function getAuthLevelFromValue(value) {
+            if (value === 0) return ACCESS_LEVELS.NONE;
+            if (value >= 601 && value <= 900) return ACCESS_LEVELS.ADMIN;
+            if (value >= 301 && value <= 600) return ACCESS_LEVELS.SYSTEM;
+            if (value >= 1 && value <= 300) return ACCESS_LEVELS.USER;
+            return ACCESS_LEVELS.NONE;
+        }
+
+        function getTimeLeftFromValue(value) {
+            if (value === 0) return 0;
+            if (value >= 601 && value <= 900) return value - 600;
+            if (value >= 301 && value <= 600) return value - 300;
+            if (value >= 1 && value <= 300) return value;
+            return 0;
+        }
+
+        function formatTime(seconds) {
+            if (seconds <= 0) return '00:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateAuthDisplay() {
+            const levelName = ACCESS_LEVEL_NAMES[currentAuth.level];
+            const levelClass = ACCESS_LEVEL_CLASSES[currentAuth.level];
+            
+            authLevelElement.textContent = levelName;
+            authLevelElement.className = `auth-level ${levelClass}`;
+            
+            if (currentAuth.level > ACCESS_LEVELS.NONE && currentAuth.timeLeft > 0) {
+                authTimeElement.textContent = formatTime(currentAuth.timeLeft);
+            } else {
+                authTimeElement.textContent = '--:--';
+            }
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch(`${CONFIG.baseUrl}/api/read?reg=4`);
+                if (!response.ok) throw new Error('Ошибка сети');
+                
+                const data = await response.json();
+                if (data.ok) {
+                    const passwordValue = data.value;
+                    currentAuth.level = getAuthLevelFromValue(passwordValue);
+                    currentAuth.timeLeft = getTimeLeftFromValue(passwordValue);
+                    
+                    if (passwordValue > 0) {
+                        currentAuth.expiresAt = Date.now() + (currentAuth.timeLeft * 1000);
+                    } else {
+                        currentAuth.expiresAt = null;
+                    }
+                    
+                    updateAuthDisplay();
+                    updateUIForAuthLevel();
+                    
+                    return true;
+                }
+            } catch (error) {
+                console.error('Ошибка проверки авторизации:', error);
+            }
+            return false;
+        }
+		
+		async function login(password) {
+		    await fetch(`${CONFIG.baseUrl}/api/write?reg=4&val=${password}`, { method: 'POST' });
+
+			await delay(300);
+			const r = await fetch(`${CONFIG.baseUrl}/api/read?reg=4`);
+			const j = await r.json();
+			if (j.ok && j.value > 0) {
+     			showAuthorized(j.value);
+			} else {
+    			showLoginError();
+			}
+		}
+		
+		async function logout() {
+    		await fetch(`${CONFIG.baseUrl}/api/write?reg=4&val=0`, { method: 'POST' });
+			showLoggedOut();
+		}
+
+// Функции авторизации
+async function showAuthorized(value) {
+    // Обновляем состояние авторизации
+    currentAuth.level = getAuthLevelFromValue(value);
+    currentAuth.timeLeft = getTimeLeftFromValue(value);
+    currentAuth.expiresAt = Date.now() + (currentAuth.timeLeft * 1000);
+    
+    // Обновляем отображение
+    updateAuthDisplay();
+    updateUIForAuthLevel();
+    
+    // Закрываем модальное окно
+    closeLoginModal();
+    
+    // Показываем уведомление
+    const levelName = ACCESS_LEVEL_NAMES[currentAuth.level];
+    showAlert(`Авторизация успешна. Уровень: ${levelName}`, 'success');
+    
+    // Обновляем таймер
+    startAuthTimer();
+    
+    // Обновляем данные
+    await refreshTabValues();
+}
+
+function showLoginError() {
+    showAlert('Неверный пароль', 'error');
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginPassword').focus();
+}
+
+async function showLoggedOut() {
+    // Сбрасываем состояние авторизации
+    currentAuth.level = ACCESS_LEVELS.NONE;
+    currentAuth.timeLeft = 0;
+    currentAuth.expiresAt = null;
+    
+    // Обновляем отображение
+    updateAuthDisplay();
+    updateUIForAuthLevel();
+    
+    // Показываем уведомление
+    showAlert('Вы вышли из системы', 'success');
+    
+    // Обновляем данные
+    await refreshTabValues();
+}
+
+// Вспомогательная функция задержки
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Также нужно добавить функцию togglePassword для отображения/скрытия пароля:
+function togglePassword() {
+    const passwordInput = document.getElementById('loginPassword');
+    const toggleButton = document.getElementById('togglePassword');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleButton.innerHTML = '<i class="fas fa-eye-slash"></i>';
+    } else {
+        passwordInput.type = 'password';
+        toggleButton.innerHTML = '<i class="fas fa-eye"></i>';
+    }
+}
+
+// Функции для управления командами
+async function sendEnableCommand() {
+    try {
+        const response = await fetch(`${CONFIG.baseUrl}/api/write?reg=0&val=10`, { 
+            method: 'POST' 
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data.ok && data.value === 1010;
+    } catch (error) {
+        console.error('Ошибка отправки ENABLE:', error);
+        return false;
+    }
+}
+
+async function sendControlCommand(command, commandName) {
+    // Сначала отправляем ENABLE
+    showAlert(`Отправка команды ${commandName}...`, 'warning');
+    
+    const enabled = await sendEnableCommand();
+    if (!enabled) {
+        showAlert('Ошибка: устройство не готово к приему команд', 'error');
+        return;
+    }
+    
+    // Пауза 100мс для стабильности
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Отправляем основную команду
+    try {
+        const response = await fetch(`${CONFIG.baseUrl}/api/write?reg=0&val=${command}`, { 
+            method: 'POST' 
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        
+        // Обработка ответов
+        switch(data.value) {
+            case 1101: // Сброс ошибок
+                showAlert('Сброс ошибок выполнен успешно', 'success');
+                break;
+            case 1201: // Отключение КА
+                showAlert('Команда отключения КА выполнена', 'success');
+                break;
+            case 1202: // Включение КА
+                showAlert('Команда включения КА выполнена', 'success');
+                break;
+            case 4010:
+                showAlert('Ошибка: не было запроса ENABLE', 'error');
+                break;
+            case 4101:
+                showAlert('Ошибка: не включен режим ПТУ (для сброса)', 'error');
+                break;
+            case 4201:
+                showAlert('Ошибка: не включен режим ПТУ (для отключения)', 'error');
+                break;
+            case 4202:
+                showAlert('Ошибка: не включен режим ПТУ (для включения)', 'error');
+                break;
+            default:
+                showAlert(`Неизвестный ответ: ${data.value}`, 'warning');
+        }
+        
+        // Обновляем состояние после команды
+        await checkDeviceConnection();
+        await refreshTabValues();
+        
+    } catch (error) {
+        console.error(`Ошибка отправки команды ${commandName}:`, error);
+        showAlert(`Ошибка сети: ${error.message}`, 'error');
+    }
+}
+
+// Функции-обработчики для кнопок
+async function handleReset() {
+    await sendControlCommand(101, 'Сброс ошибок');
+}
+
+async function handleTurnOff() {
+    await sendControlCommand(201, 'Отключение КА');
+}
+
+async function handleTurnOn() {
+    await sendControlCommand(202, 'Включение КА');
+}
+
+// Добавить обработчик для кнопки переключения видимости пароля в init():
+document.getElementById('togglePassword').addEventListener('click', togglePassword);
+
+        function updateUIForAuthLevel() {
+            // Обновляем видимость кнопок
+            const loginBtn = document.getElementById('btn-login');
+            const logoutBtn = document.getElementById('btn-logout');
+            
+            if (currentAuth.level > ACCESS_LEVELS.NONE) {
+                logoutBtn.style.display = 'flex';
+            } else {
+                logoutBtn.style.display = 'none';
+            }
+            
+			// Обновление доступности кнопок управления
+const resetBtn = document.getElementById('btn-reset');
+const offBtn = document.getElementById('btn-off');
+const onBtn = document.getElementById('btn-on');
+
+if (resetBtn && offBtn && onBtn) {
+    const isControlEnabled = currentAuth.level >= ACCESS_LEVELS.USER;
+    resetBtn.disabled = !isControlEnabled;
+    offBtn.disabled = !isControlEnabled;
+    onBtn.disabled = !isControlEnabled;
+    
+    if (isControlEnabled) {
+        resetBtn.style.opacity = '1';
+        offBtn.style.opacity = '1';
+        onBtn.style.opacity = '1';
+    } else {
+        resetBtn.style.opacity = '0.6';
+        offBtn.style.opacity = '0.6';
+        onBtn.style.opacity = '0.6';
+    }
+}
+			
+            // Обновляем карточки регистров
+            const registerCards = document.querySelectorAll('.register-card');
+            registerCards.forEach(card => {
+                const regId = parseInt(card.dataset.regId);
+                const requiredLevel = ACCESS_REQUIREMENTS[regId] || ACCESS_LEVELS.NONE;
+                const isEditable = registerIndex.get(regId)?.editable || false;
+                
+                if (isEditable && currentAuth.level < requiredLevel) {
+                    card.style.opacity = '0.6';
+                    card.style.pointerEvents = 'none';
+                    const nameElement = card.querySelector('.register-name');
+                    if (nameElement && !nameElement.querySelector('.fa-lock')) {
+                        nameElement.innerHTML += ' <i class="fas fa-lock lock-icon"></i>';
+                    }
+                } else {
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
+        function canEditRegister(regId) {
+            if (!registerIndex.get(regId)?.editable) return false;
+            
+            const requiredLevel = ACCESS_REQUIREMENTS[regId] || ACCESS_LEVELS.NONE;
+            return currentAuth.level >= requiredLevel;
+        }
+
+        function startAuthTimer() {
+            if (authTimer) clearInterval(authTimer);
+            
+            authTimer = setInterval(() => {
+                if (currentAuth.level > ACCESS_LEVELS.NONE && currentAuth.timeLeft > 0) {
+                    currentAuth.timeLeft--;
+                    
+                    // Проверяем не истекло ли время
+                    if (currentAuth.timeLeft <= 0) {
+                        currentAuth.level = ACCESS_LEVELS.NONE;
+                        currentAuth.timeLeft = 0;
+                        currentAuth.expiresAt = null;
+                        showAlert('Время авторизации истекло', 'warning');
+                    }
+                    
+                    updateAuthDisplay();
+                    updateUIForAuthLevel();
+                } else if (currentAuth.level > ACCESS_LEVELS.NONE) {
+                    // Периодически проверяем состояние с устройства
+                    checkAuthStatus();
+                }
+            }, 1000);
+        }
+
+        // Функции для работы с модальными окнами
+        function openLoginModal() {
+            document.getElementById('loginPassword').value = '';
+            loginModal.classList.add('active');
+            setTimeout(() => document.getElementById('loginPassword').focus(), 100);
+        }
+
+        function closeLoginModal() {
+            loginModal.classList.remove('active');
+            document.getElementById('loginPassword').value = '';
+        }
+		
+		// === Модифицированный openEditModal ===
+        function openEditModal(regId) {
+            if (!canEditRegister(regId)) {
+                const reg = registerIndex.get(regId);
+                const requiredLevel = ACCESS_REQUIREMENTS[regId] || ACCESS_LEVELS.NONE;
+                const requiredName = ACCESS_LEVEL_NAMES[requiredLevel];
+                showAlert(`Для редактирования требуется уровень: ${requiredName}`, 'warning');
+                return;
+            }
+            
+            const reg = registerIndex.get(regId);
+            if (!reg || !reg.editable) return;
+            
+            currentRegister = regId;
+            const currentVal = valuesCache.get(regId) || 0;
+            const isBitRegister = !!BIT_REGISTERS[regId];
+
+            document.getElementById('currentValue').innerHTML = 
+                formatValue(currentVal, reg) + (reg.unit ? ' ' + reg.unit : '');
+
+            document.getElementById('modalTitle').textContent = reg.name;
+
+            const newValueLabel = document.getElementById('newValueLabel');
+            const newValueInput = document.getElementById('newValue');
+            const valueHint = document.getElementById('valueHint');
+            const formGroup = newValueInput.parentElement;
+
+            // Удаляем старый контейнер, если был
+            const oldContainer = document.getElementById('bit-toggle-container');
+            if (oldContainer) oldContainer.remove();
+
+            if (isBitRegister) {
+                newValueLabel.textContent = 'Настройки битов';
+                newValueInput.style.display = 'none';
+
+                valueHint.innerHTML = `Текущее HEX: <strong>0x${currentVal.toString(16).padStart(4,'0').toUpperCase()}</strong><br>Диапазон: 0 ... 0xFFFF`;
+
+                // Создаём контейнер с toggles
+                const container = document.createElement('div');
+                container.id = 'bit-toggle-container';
+                container.style.marginTop = '12px';
+
+                BIT_REGISTERS[regId].forEach((def, idx) => {
+                    const checked = (currentVal & (1 << def.bit)) !== 0;
+
+                    const toggleContainer = document.createElement('div');
+                    toggleContainer.className = 'toggle-container';
+
+                    const labelSpan = document.createElement('span');
+                    labelSpan.textContent = def.label;
+
+                    const switchDiv = document.createElement('div');
+                    switchDiv.className = 'toggle-switch';
+
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.id = `toggle-${regId}-${idx}`;
+                    input.dataset.bit = def.bit;
+                    if (checked) input.checked = true;
+
+                    const slider = document.createElement('label');
+                    slider.htmlFor = input.id;
+                    slider.className = 'toggle-slider';
+
+                    switchDiv.appendChild(input);
+                    switchDiv.appendChild(slider);
+
+                    toggleContainer.appendChild(labelSpan);
+                    toggleContainer.appendChild(switchDiv);
+
+                    container.appendChild(toggleContainer);
+                });
+
+                formGroup.appendChild(container);
+            } else {
+                // Обычное поле ввода (без изменений)
+                newValueLabel.textContent = `Новое значение (${reg.unit || '-'})`;
+                newValueInput.style.display = 'block';
+                valueHint.textContent = `Диапазон: ${reg.min} ... ${reg.max} ${reg.unit || ''}`;
+
+                if (currentVal !== undefined) {
+                    const scaled = scaleValue(currentVal, reg.scale);
+                    newValueInput.value = scaled.toFixed(reg.scale);
+                } else {
+                    newValueInput.value = '';
+                }
+            }
+            
+            editModal.classList.add('active');
+            if (!isBitRegister) {
+                setTimeout(() => newValueInput.focus(), 100);
+            }
+        }
+		
+        function openInfoModal(regId) {
+            const reg = registerIndex.get(regId);
+            if (!reg) return;
+            
+            const currentVal = valuesCache.get(regId);
+            const displayValue = formatValue(currentVal, reg);
+            const requiredLevel = ACCESS_REQUIREMENTS[regId] || ACCESS_LEVELS.NONE;
+            const requiredName = ACCESS_LEVEL_NAMES[requiredLevel];
+            
+            document.getElementById('infoName').textContent = reg.name;
+            document.getElementById('infoId').textContent = '#' + reg.id;
+            document.getElementById('infoFormat').textContent = `${reg.format}:${reg.scale}`;
+            document.getElementById('infoMin').textContent = reg.min;
+            document.getElementById('infoMax').textContent = reg.max;
+            document.getElementById('infoDefault').textContent = reg.default;
+            document.getElementById('infoRequiredLevel').textContent = requiredName;
+            document.getElementById('infoValue').textContent = displayValue + (reg.unit ? ' ' + reg.unit : '');
+            
+            infoModal.classList.add('active');
+        }
+
+        // Вспомогательные функции для работы со значениями
+        function scaleValue(value, scale) {
+            return value / Math.pow(10, scale);
+        }
+
+        function unscaleValue(value, scale) {
+            return Math.round(value * Math.pow(10, scale));
+        }
+		
+		// === Модифицированная formatValue ===
+		function formatValue(value, reg) {
+            if (value === undefined || value === null) return '--';
+
+            // Специальная обработка битовых регистров управления
+            if (BIT_REGISTERS[reg.id]) {
+                const lines = [];
+                BIT_REGISTERS[reg.id].forEach(def => {
+                    const state = (value & (1 << def.bit)) ? 'ВКЛ' : 'ВЫКЛ';
+                    lines.push(`${def.label}: <strong>${state}</strong>`);
+                });
+                return lines.join('<br>');
+            }
+
+            const scaled = scaleValue(value, reg.scale);
+            
+            switch(reg.format) {
+                case 'HEX': 
+                    return '0x' + value.toString(16).toUpperCase().padStart(4, '0');
+                case 'OCT': 
+                    return '0o' + value.toString(8).padStart(6, '0');
+                case 'BIN': 
+                    return '0b' + value.toString(2).padStart(16, '0');
+                case 'SDC':
+                case 'REL':
+                    return scaled.toFixed(reg.scale);
+                case 'SWT':
+                    const state = value === 1 ? 'ВКЛ' : 'ВЫКЛ';
+                    const cls = value === 1 ? 'on' : 'off';
+                    return `<span class="state ${cls}">${state}</span>`;
+                default: // DEC
+                    return scaled.toFixed(reg.scale);
+            }
+        }
+
+        // Список регистров, которым нужен новый дизайн
+        const protectionControlRegisters = new Set([115, 122, 126, 131, 136, 141, 149, 154, 159, 164, 171, 172, 179, 185, 195, 199, 205, 210, 213]);
+		
+        // Инициализация приложения
+function init() {
+    loadTab('dashboard');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadTab(item.dataset.tab);
+        });
+    });
+    
+    // Настройка обработчиков кнопок
+    document.getElementById('btn-login').addEventListener('click', openLoginModal);
+    document.getElementById('btn-logout').addEventListener('click', logout);
+    // Убраны обработчики для удаленных кнопок
+    
+    // Обработчики модальных окон
+    document.getElementById('modalClose').addEventListener('click', closeEditModal);
+    document.getElementById('infoModalClose').addEventListener('click', closeInfoModal);
+    document.getElementById('loginModalClose').addEventListener('click', closeLoginModal);
+    
+    document.getElementById('btnLoginCancel').addEventListener('click', closeLoginModal);
+    document.getElementById('btnLoginSubmit').addEventListener('click', async () => {
+        const password = document.getElementById('loginPassword').value;
+        await login(password);
+    });
+    
+    document.getElementById('btnCancel').addEventListener('click', closeEditModal);
+    document.getElementById('btnSave').addEventListener('click', saveEditedValue);
+    
+	// Обработчики для кнопок управления
+	document.getElementById('btn-reset').addEventListener('click', handleReset);
+	document.getElementById('btn-off').addEventListener('click', handleTurnOff);
+	document.getElementById('btn-on').addEventListener('click', handleTurnOn);
+	
+    // Обработчики клавиш
+    document.getElementById('newValue').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') saveEditedValue();
+    });
+    
+    document.getElementById('loginPassword').addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+            const password = document.getElementById('loginPassword').value;
+            await login(password);
+        }
+    });
+    
+    // Закрытие модальных окон по клику вне
+    editModal.addEventListener('click', (e) => {
+        if (e.target === editModal) closeEditModal();
+    });
+    
+    infoModal.addEventListener('click', (e) => {
+        if (e.target === infoModal) closeInfoModal();
+    });
+    
+    loginModal.addEventListener('click', (e) => {
+        if (e.target === loginModal) closeLoginModal();
+    });
+    
+    // Запуск таймеров
+    // В функции init(), заменим создание таймера:
+refreshTimer = setInterval(() => {
+    refreshTabValues(); // Теперь будет обновлять только видимые группы
+}, CONFIG.refreshInterval);
+    startAuthTimer();
+    
+     // ЗАПУСК ТАЙМЕРА ПРОВЕРКИ СВЯЗИ КАЖДЫЕ 5 СЕКУНД
+    setInterval(checkDeviceConnection, CONFIG.refreshInterval);
+    
+    // ПЕРВОНАЧАЛЬНАЯ ПРОВЕРКА СВЯЗИ ПРИ ЗАГРУЗКЕ
+    checkDeviceConnection();
+    
+    // Начальная загрузка
+    checkAuthStatus().then(() => {
+        refreshTabValues();
+        updateUIForAuthLevel();
+    });
+	
+	document.getElementById('btn-export').addEventListener('click', exportRegisters);
+    document.getElementById('btn-import').addEventListener('click', triggerImport);
+
+    // Закрытие прогресс-модала
+    document.getElementById('progressModalClose').addEventListener('click', closeProgressModal);
+    document.getElementById('progressModal').addEventListener('click', e => {
+        if (e.target.id === 'progressModal') closeProgressModal();
+    });
+}
+	
+	function parseValue(input, reg) {
+    const trimmed = input.trim();
+    
+    switch(reg.format) {
+        case 'HEX':
+            return parseInt(trimmed.replace(/^0x/i, ''), 16);
+        case 'OCT':
+            return parseInt(trimmed.replace(/^0o/i, ''), 8);
+        case 'BIN':
+            return parseInt(trimmed.replace(/^0b/i, ''), 2);
+        case 'SWT':
+            return ['1', 'вкл', 'true', 'on', 'да', 'yes'].includes(trimmed.toLowerCase()) ? 1 : 0;
+        case 'SDC':
+        case 'REL':
+        default: // DEC
+            const floatValue = parseFloat(trimmed);
+            return unscaleValue(floatValue, reg.scale);
+    }
+}
+
+function validateValue(value, reg) {
+    if (value < reg.min * Math.pow(10, reg.scale)) {
+        return { valid: false, message: `Значение должно быть >= ${reg.min}` };
+    }
+    if (value > reg.max * Math.pow(10, reg.scale)) {
+        return { valid: false, message: `Значение должно быть <= ${reg.max}` };
+    }
+    return { valid: true, message: '' };
+}
+
+// Модифицированная createRegisterCard
+        function createRegisterCard(regId) {
+            const reg = registerIndex.get(regId);
+            if (!reg) return '';
+            
+            const cachedValue = valuesCache.get(regId);
+            const displayValue = cachedValue !== undefined ? formatValue(cachedValue, reg) : '<span class="loading"><div class="spinner"></div></span>';
+            const isEditable = reg.editable;
+            
+            const requiredLevel = ACCESS_REQUIREMENTS[regId] || ACCESS_LEVELS.NONE;
+            const hasAccess = currentAuth.level >= requiredLevel;
+
+            const isSpecial = protectionControlRegisters.has(regId);
+
+            let cardClass = 'register-card';
+            if (isSpecial) cardClass += ' protection-control';
+            if (isEditable && !hasAccess) cardClass += ' locked';
+            
+            let onClickAction = 'openInfoModal(' + regId + ')';
+            if (isEditable && hasAccess) {
+                onClickAction = 'openEditModal(' + regId + ')';
+            }
+            
+            const unitDisplay = reg.unit ? `<div class="value-unit">${reg.unit}</div>` : '';
+
+            return `
+                <div class="${cardClass}" data-reg-id="${regId}" onclick="${onClickAction}">
+                    <div class="card-header">
+                        <div class="register-name">${reg.name}${isEditable && !hasAccess ? ' <i class="fas fa-lock lock-icon"></i>' : ''}</div>
+                        <div class="register-id">#${reg.id}</div>
+                    </div>
+                    <div class="value-row">
+                        <div class="value-display" id="value-${regId}">
+                            ${displayValue}
+                        </div>
+                        ${unitDisplay}
+                    </div>
+                    <div class="card-footer">
+                        <div class="register-format">${reg.format}:${reg.scale}</div>
+                        <div class="register-status">
+                            <div class="status-dot small" style="background:${cachedValue !== undefined ? '#4caf50' : '#ff9800'}"></div>
+                            <span>${cachedValue !== undefined ? 'акт.' : 'загр.'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+		
+function loadTab(tabId) {
+    const tab = tabContent[tabId];
+    if (!tab) return;
+    currentTab = tabId;
+    
+    let html = '';
+    tab.groups.forEach((group, groupIndex) => {
+        // Делаем первую группу раскрытой по умолчанию
+        const isExpandedByDefault = groupIndex === 0;
+        const displayStyle = isExpandedByDefault ? 'grid' : 'none';
+        
+        // Сохраняем ID группы для отслеживания
+        const groupId = `${tabId}_${groupIndex}`;
+        
+        html += `<div class="section-title" data-group-id="${groupId}" onclick="
+    const grid = this.nextElementSibling;
+    if (grid.style.display === 'none' || grid.style.display === '') {
+        grid.style.display = 'grid';
+        this.dataset.expanded = 'true';
+        // При раскрытии группы читаем ее регистры
+        refreshGroup(${JSON.stringify(group.registers)});
+    } else {
+        grid.style.display = 'none';
+        this.dataset.expanded = 'false';
+    }
+">${group.title}</div>`;
+        
+        html += `<div class="register-grid" data-group-id="${groupId}" style="display:${displayStyle};">`;
+        group.registers.forEach(regId => {
+            html += createRegisterCard(regId);
+        });
+        html += '</div>';
+        
+        // Если группа раскрыта по умолчанию, читаем ее регистры
+        if (isExpandedByDefault) {
+            setTimeout(() => {
+                refreshGroup(group.registers);
+            }, 100);
+        }
+    });
+    
+    contentArea.innerHTML = html;
+    navItems.forEach(item => {
+        item.classList.toggle('active', item.dataset.tab === tabId);
+    });
+}
+
+async function refreshGroup(regIds) {
+    console.log(`Обновление группы с ${regIds.length} регистрами`);
+    for (const regId of regIds) {
+        await updateRegisterValue(regId);
+    }
+}
+
+async function checkDeviceConnection() {
+    try {
+        // Запрашиваем тест связи и регистр 12 параллельно
+        const [testResponse, reg12Response] = await Promise.all([
+            fetch(`${CONFIG.baseUrl}/api/test`),
+            fetch(`${CONFIG.baseUrl}/api/read?reg=12`)
+        ]);
+        
+        if (!testResponse.ok || !reg12Response.ok) {
+            throw new Error('Ошибка сети');
+        }
+        
+        const testData = await testResponse.json();
+        const reg12Data = await reg12Response.json();
+        
+        // Проверяем наличие ожидаемого ответа
+        if (testData && testData.message === "Связь с МТЗП установлена" && reg12Data.ok) {
+            updateConnectionStatus(true, testData, reg12Data.value);
+        } else {
+            updateConnectionStatus(false, null, null);
+        }
+    } catch (error) {
+        console.error('Ошибка проверки связи:', error);
+        updateConnectionStatus(false, null, null);
+    }
+}
+
+function updateConnectionStatus(isConnected, deviceData, reg12Value) {
+    const statusBadge = document.querySelector('.status-badge');
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = statusBadge.querySelector('span');
+    
+    if (isConnected) {
+        statusDot.style.background = 'var(--success)';
+        statusText.textContent = 'Подключено';
+        
+        // Обновляем индикаторы на основе регистра 12
+        updateStatusIndicators(reg12Value);
+        
+        // Обновляем информацию об устройстве, если есть данные
+        if (deviceData) {
+            console.log('Данные устройства:', deviceData);
+            // Можно добавить отображение дополнительной информации
+            // Например, серийный номер или скорость соединения
+        }
+    } else {
+        statusDot.style.background = 'var(--danger)';
+        statusText.textContent = 'Нет связи';
+        
+        // Сбрасываем все индикаторы при потере связи
+        resetStatusIndicators();
+        
+        // Также можно показать предупреждение, если связь потеряна
+        if (currentAuth.level > ACCESS_LEVELS.NONE) {
+            showAlert('Потеряно соединение с устройством', 'warning');
+        }
+    }
+}
+
+function updateStatusIndicators(reg12Value) {
+    if (reg12Value === undefined || reg12Value === null) {
+        resetStatusIndicators();
+        return;
+    }
+    
+    // Преобразуем значение в число, если оно строковое
+    const value = parseInt(reg12Value);
+    
+    // Анализируем биты регистра 12
+    // Бит 08 = Индикатор "АВАРИЯ" (маска 0x0100)
+    // Бит 09 = Индикатор "ГОТОВ"   (маска 0x0200)
+    // Бит 10 = Индикатор "ВКЛ"     (маска 0x0400)
+    // Бит 11 = Индикатор "ОТКЛ"    (маска 0x0800)
+    
+    const alarmActive = (value & 0x0100) !== 0;   // Бит 8
+    const readyActive = (value & 0x0200) !== 0;   // Бит 9
+    const onActive = (value & 0x0400) !== 0;      // Бит 10
+    const offActive = (value & 0x0800) !== 0;     // Бит 11
+    
+    // Обновляем индикаторы
+    updateIndicator('indicator-alarm', alarmActive);
+    updateIndicator('indicator-ready', readyActive);
+    updateIndicator('indicator-on', onActive);
+    updateIndicator('indicator-off', offActive);
+    
+    // Можно добавить логирование для отладки
+    console.log(`Регистр 12: 0x${value.toString(16).padStart(4, '0')}`, {
+        alarm: alarmActive,
+        ready: readyActive,
+        on: onActive,
+        off: offActive
+    });
+}
+
+function updateIndicator(indicatorId, isActive) {
+    const indicator = document.getElementById(indicatorId);
+    if (indicator) {
+        if (isActive) {
+            indicator.classList.add('active');
+        } else {
+            indicator.classList.remove('active');
+        }
+    }
+}
+
+function resetStatusIndicators() {
+    // Сбрасываем все индикаторы
+    document.querySelectorAll('.indicator').forEach(indicator => {
+        indicator.classList.remove('active');
+    });
+}function updateIndicator(indicatorId, isActive) {
+    const indicator = document.getElementById(indicatorId);
+    if (indicator) {
+        if (isActive) {
+            indicator.classList.add('active');
+        } else {
+            indicator.classList.remove('active');
+        }
+    }
+}
+
+function resetStatusIndicators() {
+    // Сбрасываем все индикаторы
+    document.querySelectorAll('.indicator').forEach(indicator => {
+        indicator.classList.remove('active');
+    });
+}
+
+async function refreshTabValues() {
+    const tab = tabContent[currentTab];
+    if (!tab) return;
+    
+    // Находим все видимые группы на текущей вкладке
+    const allGrids = document.querySelectorAll('.register-grid');
+    const visibleGrids = Array.from(allGrids).filter(grid => {
+        // Проверяем несколько способов определения видимости
+        const style = window.getComputedStyle(grid);
+        return style.display === 'grid';
+    });
+    
+    // Если нет видимых групп - выходим
+    if (visibleGrids.length === 0) {
+        console.log('Нет видимых групп для обновления');
+        return;
+    }
+    
+    console.log(`Обновление ${visibleGrids.length} видимых групп`);
+    
+    // Собираем все регистры из видимых групп
+    const allRegIds = new Set();
+    
+    visibleGrids.forEach(grid => {
+        const cards = grid.querySelectorAll('.register-card');
+        cards.forEach(card => {
+            const regId = parseInt(card.dataset.regId);
+            if (!isNaN(regId)) {
+                allRegIds.add(regId);
+            }
+        });
+    });
+    
+    // Обновляем значения для всех найденных регистров
+    if (allRegIds.size > 0) {
+        console.log(`Обновление ${allRegIds.size} регистров`);
+        for (const regId of allRegIds) {
+            await updateRegisterValue(regId);
+        }
+    }
+}
+
+function isGroupVisible(gridElement) {
+    if (!gridElement) return false;
+    
+    // Проверяем несколько методов определения видимости
+    const style = window.getComputedStyle(gridElement);
+    return style.display === 'grid';
+}
+
+async function updateRegisterValue(regId) {
+    // Проверяем, существует ли элемент на странице
+    const valueElement = document.getElementById(`value-${regId}`);
+    if (!valueElement) {
+        // Элемента нет на странице
+        return;
+    }
+    
+    // Проверяем, находится ли элемент в видимой группе
+    const card = valueElement.closest('.register-card');
+    if (!card) return;
+    
+    const grid = card.closest('.register-grid');
+    if (!grid) return;
+    
+    // Проверяем видимость группы
+    if (!isGroupVisible(grid)) {
+        console.log(`Регистр ${regId} находится в скрытой группе, пропускаем`);
+        return;
+    }
+    
+    try {
+        console.log(`Чтение регистра ${regId}...`);
+        const response = await fetch(`${CONFIG.baseUrl}/api/read?reg=${regId}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.ok) {
+            valuesCache.set(regId, data.value);
+            const reg = registerIndex.get(regId);
+            
+            valueElement.innerHTML = formatValue(data.value, reg);
+            const statusDot = card.querySelector('.status-dot.small');
+            if (statusDot) {
+                statusDot.style.background = '#4caf50';
+                const statusText = statusDot.parentElement.querySelector('span');
+                if (statusText) {
+                    statusText.textContent = 'акт.';
+                }
+            }
+            console.log(`Регистр ${regId} обновлен: ${data.value}`);
+        }
+    } catch (error) {
+        console.error(`Ошибка чтения регистра ${regId}:`, error);
+    }
+}
+
+// === Модифицированный saveEditedValue ===
+// === saveEditedValue (без изменений, работает с input[type="checkbox"]) ===
+        async function saveEditedValue() {
+            if (!currentRegister) return;
+            
+            const reg = registerIndex.get(currentRegister);
+            const isBitRegister = !!BIT_REGISTERS[currentRegister];
+
+            let parsedValue;
+
+            if (isBitRegister) {
+                parsedValue = 0;
+                const checkboxes = document.querySelectorAll('#bit-toggle-container input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        const bit = parseInt(cb.dataset.bit);
+                        parsedValue |= (1 << bit);
+                    }
+                });
+            } else {
+                const input = document.getElementById('newValue');
+                const valueStr = input.value.trim();
+                if (!valueStr) {
+                    showAlert('Введите значение', 'error');
+                    return;
+                }
+                parsedValue = parseValue(valueStr, reg);
+                const validation = validateValue(parsedValue, reg);
+                if (!validation.valid) {
+                    showAlert(validation.message, 'error');
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`${CONFIG.baseUrl}/api/write?reg=${currentRegister}&val=${parsedValue}`, { 
+                    method: 'POST' 
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const result = await response.json();
+                
+                if (result.ok) {
+                    showAlert('Значение сохранено', 'success');
+                    valuesCache.set(currentRegister, parsedValue);
+                    
+                    const valueElement = document.getElementById(`value-${currentRegister}`);
+                    if (valueElement) {
+                        valueElement.innerHTML = formatValue(parsedValue, reg);
+                    }
+                    
+                    closeEditModal();
+                } else {
+                    showAlert('Ошибка сохранения', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения значения:', error);
+                showAlert('Ошибка сети или устройства', 'error');
+            }
+        }
+		
+		// === Модифицированный closeEditModal (очистка чекбоксов) ===
+		function closeEditModal() {
+            editModal.classList.remove('active');
+            currentRegister = null;
+            document.getElementById('newValue').value = '';
+            document.getElementById('newValue').style.display = 'block';
+            document.getElementById('valueHint').textContent = '';
+            document.getElementById('newValueLabel').textContent = 'Новое значение';
+
+            const bitContainer = document.getElementById('bit-toggle-container');
+            if (bitContainer) bitContainer.remove();
+        }
+
+function closeInfoModal() {
+    infoModal.classList.remove('active');
+}
+
+function showAlert(message, type) {
+    const alert = document.createElement('div');
+    alert.className = `alert ${type}`;
+    alert.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" style="margin-left: auto; background: none; border: none; color: inherit;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    alertsContainer.appendChild(alert);
+    setTimeout(() => {
+        if (alert.parentElement) {
+            alert.remove();
+        }
+    }, 3000);
+}
+
+        // Загрузка при полной загрузке DOM
+        document.addEventListener('DOMContentLoaded', init);
+
+// Экспортируем функции для глобального доступа
+window.openEditModal = openEditModal;
+window.openInfoModal = openInfoModal;
+window.openLoginModal = openLoginModal;
+    </script>
 </body>
 </html>
