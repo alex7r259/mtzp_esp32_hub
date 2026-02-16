@@ -833,12 +833,18 @@
             <div class="status-badge">
                 <div class="status-dot"></div>
                 <span id="statusBadge">Проверка...</span>
+				<a href="/">
+    				<div class="indicator" id="btn-set">
+					    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 448 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="white" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256 214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160zm352-160l-160 160c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L269.3 256 406.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0z"/></svg>
+					</div>
+				</a>
             </div>
         </div>
-        <div class="header-subtitle">Настройки и управление</div>
+        <div class="header-subtitle">Текущие настройки</div>
         <div class="auth-info">
-            <div id="authLevel" class="auth-level none">Нет доступа</div>
-            <div id="authTime" class="auth-time">--:--</div>
+            <div class="auth-level none" id="deviceAddr">-</div>
+            <div class="auth-level none" id="deviceAddrHEX">-</div>
+            <div class="auth-time" id="baudRate">-</div>
         </div>
     </div>
 
@@ -846,22 +852,6 @@
         <!-- Статус системы -->
         <div class="section-title">📊 Статус системы</div>
         <div class="register-grid" id="statusGrid">
-            <div class="register-card">
-                <div class="card-header">
-                    <div class="register-name">Адрес устройства</div>
-                </div>
-                <div class="value-row">
-                    <div class="value-display" id="deviceAddr">-</div>
-                </div>
-            </div>
-            <div class="register-card">
-                <div class="card-header">
-                    <div class="register-name">Скорость обмена</div>
-                </div>
-                <div class="value-row">
-                    <div class="value-display" id="baudRate">-</div>
-                </div>
-            </div>
             <div class="register-card">
                 <div class="card-header">
                     <div class="register-name">Время работы</div>
@@ -911,9 +901,7 @@
                 <div id="readResult"></div>
                 <div class="examples">
                     <h3>Примеры регистров:</h3>
-                    • Рег. 10: Серийный номер<br>
-                    • Рег. 33-35: Напряжения фаз A, B, C<br>
-                    • Рег. 41-43: Токи фаз A, B, C
+                    • Рег. 10: Серийный номер
                 </div>
             </div>
         </div>
@@ -932,26 +920,6 @@
                     <button onclick="writeRegister()" class="btn btn-primary">Записать</button>
                 </div>
                 <div id="writeResult"></div>
-            </div>
-        </div>
-
-        <!-- Чтение группы регистров -->
-        <div class="section-title">📚 Чтение группы регистров</div>
-        <div class="register-grid">
-            <div class="register-card">
-                <div class="form-group">
-                    <input type="text" id="multiRegs" class="form-input" placeholder="Номера через запятую (напр: 10,11,33)" style="width: 100%;">
-                </div>
-                <div class="form-actions">
-                    <button onclick="readMultiple()" class="btn btn-primary">Прочитать группу</button>
-                </div>
-                <div id="multiResult"></div>
-                <div class="examples">
-                    <h3>Примеры:</h3>
-                    • <code>10,11</code> - Серийный номер и дата<br>
-                    • <code>33,34,35</code> - Напряжения трёх фаз<br>
-                    • <code>41,42,43</code> - Токи трёх фаз
-                </div>
             </div>
         </div>
 
@@ -979,7 +947,7 @@
             fetch('/api/status')
                 .then(r => r.json())
                 .then(data => {
-                    document.getElementById('deviceAddr').textContent = data.device_address;
+                    document.getElementById('deviceAddrHEX').textContent = '(' + data.device_address + ')';
                     document.getElementById('baudRate').textContent = data.baud_rate + ' bps';
                     document.getElementById('uptime').textContent = Math.floor(data.uptime_ms / 1000) + ' сек';
                     document.getElementById('freeHeap').textContent = Math.floor(data.free_heap / 1024) + ' КБ';
@@ -1007,6 +975,7 @@
                     const addrInput = document.getElementById('configAddr');
                     const baudSelect = document.getElementById('configBaud');
                     addrInput.value = data.address;
+                    document.getElementById('deviceAddr').textContent = data.address;					
                     baudSelect.innerHTML = '';
                     data.allowed_baud_rates.forEach(rate => {
                         const option = document.createElement('option');
@@ -1090,29 +1059,6 @@
                 })
                 .catch(err => {
                     document.getElementById('writeResult').innerHTML =
-                        `<div class="alert error">❌ Ошибка сети: ${err.message}</div>`;
-                });
-        }
-
-        function readMultiple() {
-            let regs = document.getElementById('multiRegs').value;
-            fetch('/api/read_multiple?regs=' + regs)
-                .then(r => r.json())
-                .then(data => {
-                    let result = document.getElementById('multiResult');
-                    if (data.ok) {
-                        let html = '<div class="alert success">✅ Успешно прочитано ' + data.count + ' регистров:<br><br>';
-                        data.data.forEach(item => {
-                            html += `• Рег. ${item.reg}: <strong>${item.value}</strong> (0x${item.hex_value})<br>`;
-                        });
-                        html += '</div>';
-                        result.innerHTML = html;
-                    } else {
-                        result.innerHTML = `<div class="alert error">❌ Ошибка чтения группы регистров</div>`;
-                    }
-                })
-                .catch(err => {
-                    document.getElementById('multiResult').innerHTML =
                         `<div class="alert error">❌ Ошибка сети: ${err.message}</div>`;
                 });
         }
