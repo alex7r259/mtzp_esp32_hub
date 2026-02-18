@@ -165,6 +165,27 @@
             0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
         }
+		
+		.alarm-ticker {
+    		width: 100%;
+			background: #f44336;
+			color: #fff;
+			overflow: hidden;
+			white-space: nowrap;
+			font-weight: 700;
+			padding: 6px 0;
+		}
+		
+		.alarm-text {
+    		display: inline-block;
+			padding-left: 100%;
+			animation: marquee 10s linear infinite;
+		}
+		
+		@keyframes marquee {
+    		0%   { transform: translateX(0); }
+			100% { transform: translateX(-100%); }
+		}
 
         .auth-info {
             display: flex;
@@ -285,18 +306,18 @@
             color: white;
             border-color: var(--success);
         }
-
-.quick-action.warning {
-    background: var(--warning);
-    color: white;
-    border-color: var(--warning);
-}
-
-.quick-action.danger {
-    background: var(--danger);
-    color: white;
-    border-color: var(--danger);
-}
+		
+		.quick-action.warning {
+     		background: var(--warning);
+			color: white;
+			border-color: var(--warning);
+		}
+		
+		.quick-action.danger {
+    		background: var(--danger);
+			color: white;
+			border-color: var(--danger);
+		}
 
         .quick-main-actions {
             display: flex;
@@ -829,6 +850,127 @@
         .toggle-switch input:checked + .toggle-slider:before {
             transform: translateX(26px);
         }
+		
+		.value-display.bit-register {
+    		font-size: 0.82rem !important;
+			font-weight: 500;
+			line-height: 1.32;
+			text-align: left;
+			color: #333;
+			max-height: 118px;           /* ограничим высоту */
+			overflow-y: auto;
+			padding: 4px 6px;
+			background: rgba(248, 249, 250, 0.6);
+			border-radius: 6px;
+			margin: -4px -6px;           /* компенсируем отступы карточки */
+		}
+		
+		.value-display.bit-register strong {
+    		font-weight: 700;
+			color: #2e7d32;
+		}
+		
+		.value-display.bit-register .off {
+    		color: #c62828;
+		}
+		
+		/* Для очень длинных списков (например регистр 171, 213) */
+		.register-card.protection-control .value-row {
+    		align-items: flex-start;
+		}
+		
+		#editModal .modal-value,
+		#infoModal .modal-value {
+    		font-size: 1.1rem !important;
+			font-weight: 500;
+			line-height: 1.45;
+			text-align: left !important;
+			padding: 12px 14px;
+			background: #f8f9fa;
+			border-radius: 8px;
+			border: 1px solid #e0e0e0;
+			word-break: break-word;
+			max-height: 220px;
+			overflow-y: auto;
+			margin: 8px 0 16px;
+		}
+		
+		/* Более компактный и читаемый вид для битовых регистров в модалке */
+		.modal-bit-list {
+    		display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+			gap: 10px 16px;
+			font-size: 0.94rem;
+			line-height: 1.5;
+		}
+		
+		.modal-bit-item {
+    		display: flex;
+			align-items: center;
+			gap: 3px;
+		}
+		
+		.modal-bit-item .bit-label {
+    		flex: 1;
+			color: #444;
+		}
+		
+		.modal-bit-item .bit-state {
+    		font-weight: 600;
+			min-width: 60px;
+			text-align: right;
+		}
+		
+		.modal-bit-item .on  { color: #2e7d32; }
+		.modal-bit-item .off { color: #c62828; opacity: 0.85; }
+		
+		/* Уменьшаем размер текущего значения, если оно очень длинное */
+		.modal-value.bit-heavy {
+    		font-size: 0.96rem !important;
+			line-height: 1.38;
+		}
+		
+		/* Цвета состояний в карточках регистров (битовые и обычные SWT) */
+.state.on,
+.bit-on {
+    color: #2e7d32;          /* насыщенный зелёный */
+    font-weight: 700;
+}
+
+.state.off,
+.bit-off {
+    color: #c62828;          /* насыщенный красный */
+    font-weight: 600;
+    opacity: 0.92;           /* чуть мягче, чтобы не резало глаза */
+}
+
+/* Компактное и читаемое отображение битовых регистров в карточке */
+.value-display.bit-register {
+    font-size: 0.84rem !important;
+    line-height: 1.28;
+    font-weight: 400;
+    text-align: left;
+    padding: 6px 8px;
+    background: rgba(245, 245, 245, 0.7);
+    border-radius: 6px;
+    margin: -2px -4px;
+    max-height: 110px;
+    overflow-y: auto;
+}
+
+.value-display.bit-register .bit-line {
+    margin: 3px 0;
+    white-space: nowrap;
+}
+
+.value-display.bit-register .bit-label {
+    color: #444;
+}
+
+/* Улучшаем выравнивание в карточках с большим количеством битов */
+.register-card.protection-control .value-row {
+    align-items: flex-start;
+}
     </style>
 </head>
 <body class="no-select">
@@ -885,8 +1027,11 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M488 192l-144 0c-9.7 0-18.5-5.8-22.2-14.8s-1.7-19.3 5.2-26.2l46.7-46.7c-75.3-58.6-184.3-53.3-253.5 15.9-75 75-75 196.5 0 271.5s196.5 75 271.5 0c8.2-8.2 15.5-16.9 21.9-26.1 10.1-14.5 30.1-18 44.6-7.9s18 30.1 7.9 44.6c-8.5 12.2-18.2 23.8-29.1 34.7-100 100-262.1 100-362 0S-25 175 75 75c94.3-94.3 243.7-99.6 344.3-16.2L471 7c6.9-6.9 17.2-8.9 26.2-5.2S512 14.3 512 24l0 144c0 13.3-10.7 24-24 24z"/></svg>
         <span>Сброс</span>
     </button>
-</div>
-        
+	</div>
+	
+	<div id="alarmTicker" class="alarm-ticker" style="display:none;">
+        <div id="alarmText" class="alarm-text"></div>
+	</div>        
         
         
     </div>
@@ -1017,7 +1162,7 @@
                 <div class="modal-section">
                     <div class="form-group password-input">
                         <label class="modal-label">Пароль</label>
-                        <input type="password" class="form-input" id="loginPassword" placeholder="Введите пароль">
+                        <input type="number" class="form-input" id="loginPassword" placeholder="Введите пароль">
                         <button type="button" class="password-toggle" id="togglePassword">
                             <i class="fas fa-eye"></i>
                         </button>
@@ -1239,6 +1384,9 @@
             253: ACCESS_LEVELS.ADMIN, // Период обновления
             254: ACCESS_LEVELS.ADMIN, // Указатель макс
         };
+		
+		let isDeviceConnected = false;
+		let lastAlarmText = '';
 
         // Основная таблица регистров
         const registerTable = [
@@ -1275,13 +1423,13 @@
             {"id":30,"name":"Регистр неисправностей - 1","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
             {"id":31,"name":"Регистр неисправностей - 2","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":"E"},
             {"id":32,"name":"Темпер. воздуха, °C","format":"SDC","scale":1,"min":-40,"max":125,"default":0,"unit":"°C","editable":false,"properties":""},
-            {"id":33,"name":"Напряжение фазы A, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
-            {"id":34,"name":"Напряжение фазы B, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
-            {"id":35,"name":"Напряжение фазы C, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
-            {"id":36,"name":"Макс. напряжение, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
-            {"id":37,"name":"Мин. напряжение, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":33,"name":"Напряжение фазы A, В","format":"DEC","scale":0,"min":0,"max":12000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":34,"name":"Напряжение фазы B, В","format":"DEC","scale":0,"min":0,"max":12000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":35,"name":"Напряжение фазы C, В","format":"DEC","scale":0,"min":0,"max":12000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":36,"name":"Макс. напряжение, В","format":"DEC","scale":0,"min":0,"max":12000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":37,"name":"Мин. напряжение, В","format":"DEC","scale":0,"min":0,"max":12000,"default":0,"unit":"В","editable":false,"properties":""},
             {"id":38,"name":"Несимметрия Uфаз, %","format":"DEC","scale":1,"min":0,"max":100,"default":0,"unit":"%","editable":false,"properties":""},
-            {"id":39,"name":"Порог несим. Uфаз, В","format":"DEC","scale":0,"min":0,"max":8000,"default":50,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":39,"name":"Порог несим. Uфаз, В","format":"DEC","scale":0,"min":0,"max":12000,"default":50,"unit":"В","editable":true,"properties":"EWPU"},
             {"id":40,"name":"Индикация напряж","format":"BIN","scale":2,"min":0,"max":3,"default":0,"unit":"","editable":true,"properties":"EWPU"},
             {"id":41,"name":"Ток фазы A, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
             {"id":42,"name":"Ток фазы B, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
@@ -1302,19 +1450,19 @@
             {"id":57,"name":"Мощность активн., кВт","format":"SDC","scale":1,"min":-1000,"max":1000,"default":0,"unit":"кВт","editable":false,"properties":""},
             {"id":58,"name":"Мощность полная, кВА","format":"DEC","scale":1,"min":0,"max":2000,"default":0,"unit":"кВА","editable":false,"properties":""},
             {"id":59,"name":"Коэф. мощности","format":"REL","scale":3,"min":0,"max":0.999,"default":0,"unit":"","editable":false,"properties":""},
-            {"id":60,"name":"Напряжение нуля, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":60,"name":"Напряжение нуля, В","format":"DEC","scale":0,"min":0,"max":12000,"default":0,"unit":"В","editable":false,"properties":""},
             {"id":61,"name":"Ток нулевой, mA","format":"DEC","scale":0,"min":0,"max":5000,"default":0,"unit":"мА","editable":false,"properties":""},
             {"id":62,"name":"Угол между V и I, °","format":"SDC","scale":0,"min":-180,"max":180,"default":0,"unit":"°","editable":false,"properties":""},
             {"id":63,"name":"Оперативное пит., В","format":"DEC","scale":1,"min":0,"max":300,"default":0,"unit":"В","editable":false,"properties":""},
-            {"id":64,"name":"Линейное напряж., В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":64,"name":"Линейное напряж., В","format":"DEC","scale":0,"min":0,"max":12000,"default":0,"unit":"В","editable":false,"properties":""},
             {"id":65,"name":"Номинал. Uпит., В","format":"DEC","scale":1,"min":30.0,"max":150.0,"default":100.0,"unit":"В","editable":true,"properties":"EWPU"},
-            {"id":66,"name":"Номинал. Uлин., В","format":"DEC","scale":0,"min":1250,"max":8000,"default":6000,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":66,"name":"Номинал. Uлин., В","format":"DEC","scale":0,"min":1250,"max":12000,"default":6000,"unit":"В","editable":true,"properties":"EWPU"},
             {"id":67,"name":"Напряжение Vtst, В","format":"DEC","scale":1,"min":0,"max":1000,"default":0,"unit":"В","editable":false,"properties":""},
             {"id":68,"name":"Напряжение 17V, В","format":"DEC","scale":2,"min":0,"max":20,"default":0,"unit":"В","editable":false,"properties":""},
             {"id":69,"name":"Напряжение 05V, В","format":"DEC","scale":2,"min":0,"max":6,"default":0,"unit":"В","editable":false,"properties":""},
             {"id":70,"name":"Пульсация Iмакс, %","format":"DEC","scale":1,"min":0,"max":100,"default":0,"unit":"%","editable":false,"properties":""},
             {"id":71,"name":"Ток пуска, A","format":"DEC","scale":0,"min":0,"max":3000,"default":0,"unit":"А","editable":false,"properties":""},
-            {"id":72,"name":"Напряжение пуска, В","format":"DEC","scale":0,"min":0,"max":8000,"default":0,"unit":"В","editable":false,"properties":""},
+            {"id":72,"name":"Напряжение пуска, В","format":"DEC","scale":0,"min":0,"max":12000,"default":0,"unit":"В","editable":false,"properties":""},
             {"id":73,"name":"Время пуска, мсек","format":"DEC","scale":0,"min":0,"max":10000,"default":0,"unit":"мс","editable":false,"properties":""},
             {"id":74,"name":"Порог изм. Iпуска, А","format":"DEC","scale":0,"min":0,"max":500,"default":10,"unit":"А","editable":true,"properties":"EWPU"},
             {"id":75,"name":"T фильтра парам., мсек","format":"DEC","scale":0,"min":5,"max":9999,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
@@ -1385,11 +1533,11 @@
             {"id":140,"name":"ЗМТ Включение, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
             {"id":141,"name":"ЗМН Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000F,"unit":"","editable":true,"properties":"EWPU"},
             {"id":142,"name":"ЗМН Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
-            {"id":143,"name":"ЗМН Max Уставка, В","format":"DEC","scale":0,"min":0,"max":8000,"default":8000,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":143,"name":"ЗМН Max Уставка, В","format":"DEC","scale":0,"min":0,"max":12000,"default":8000,"unit":"В","editable":true,"properties":"EWPU"},
             {"id":144,"name":"ЗМН Max Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
-            {"id":145,"name":"ЗМН Min Уставка, В","format":"DEC","scale":0,"min":0,"max":8000,"default":5000,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":145,"name":"ЗМН Min Уставка, В","format":"DEC","scale":0,"min":0,"max":12000,"default":5000,"unit":"В","editable":true,"properties":"EWPU"},
             {"id":146,"name":"ЗМН Min Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
-            {"id":147,"name":"Uс.шин Уставка, В","format":"DEC","scale":0,"min":0,"max":8000,"default":2500,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":147,"name":"Uс.шин Уставка, В","format":"DEC","scale":0,"min":0,"max":12000,"default":2500,"unit":"В","editable":true,"properties":"EWPU"},
             {"id":148,"name":"Uс.шин Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
             {"id":149,"name":"ЗНФ Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
             {"id":150,"name":"ЗНФ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
@@ -1409,7 +1557,7 @@
             {"id":164,"name":"НЗЗ Р. управления","format":"HEX","scale":4,"min":0,"max":65535,"default":0x000D,"unit":"","editable":true,"properties":"EWPU"},
             {"id":165,"name":"НЗЗ Р. состояния","format":"HEX","scale":4,"min":0,"max":65535,"default":0,"unit":"","editable":false,"properties":""},
             {"id":166,"name":"НЗЗ Уставка по I, mA","format":"DEC","scale":0,"min":0,"max":5000,"default":100,"unit":"мА","editable":true,"properties":"EWPU"},
-            {"id":167,"name":"НЗЗ Уставка по U, В","format":"DEC","scale":0,"min":0,"max":8000,"default":500,"unit":"В","editable":true,"properties":"EWPU"},
+            {"id":167,"name":"НЗЗ Уставка по U, В","format":"DEC","scale":0,"min":0,"max":12000,"default":500,"unit":"В","editable":true,"properties":"EWPU"},
             {"id":168,"name":"НЗЗ Задержка, мсек","format":"DEC","scale":0,"min":0,"max":65535,"default":1000,"unit":"мс","editable":true,"properties":"EWPU"},
             {"id":169,"name":"НЗЗ Угол Мин., °","format":"SDC","scale":0,"min":-180,"max":180,"default":-30,"unit":"°","editable":true,"properties":"EWPU"},
             {"id":170,"name":"НЗЗ Угол Макс., °","format":"SDC","scale":0,"min":-180,"max":180,"default":30,"unit":"°","editable":true,"properties":"EWPU"},
@@ -1523,8 +1671,68 @@
 
         const registerIndex = new Map(registerTable.map(item => [item.id, item]));
 		
-		// === НОВАЯ КОНСТАНТА: описание битов для регистров управления ===
+// === НОВАЯ КОНСТАНТА: описание битов для регистров управления ===
 const BIT_REGISTERS = {
+
+            23: [
+                { bit: 0,  label: "К1" },
+                { bit: 1,  label: "К2" },
+                { bit: 2,  label: "К3" },
+                { bit: 3,  label: "К4" },
+                { bit: 4,  label: "К5" },
+                { bit: 5,  label: "К6" },
+                { bit: 6,  label: "К7" },
+                { bit: 7,  label: "К8" },
+                { bit: 8,  label: "К9" },
+                { bit: 9,  label: "К10" },
+                { bit: 10,  label: "К11" },
+                { bit: 11,  label: "К12" },
+                { bit: 12,  label: "Включение тестового напряжения БВР" },
+                { bit: 13,  label: "Тест ДТ" },
+                { bit: 14,  label: "Тест ТНП" }
+            ],
+			24: [
+                { bit: 3,  label: "Внешний вход 1" },
+                { bit: 2,  label: "Внешний вход 2" },
+                { bit: 1,  label: "Внешний вход 3" },
+                { bit: 0,  label: "Внешний вход 4" }
+            ],
+			25: [
+                { bit: 2,  label: "Внешний вход 5" },
+                { bit: 1,  label: "Внешний вход 6" },
+                { bit: 0,  label: "Внешний вход 7" }
+            ],
+			26: [
+                { bit: 0,  label: "Вход 1" },
+                { bit: 1,  label: "Вход 2" },
+                { bit: 2,  label: "Вход 3" },
+                { bit: 3,  label: "Вход 4" },
+                { bit: 4,  label: "Вход 5" },
+                { bit: 5,  label: "Вход 6" },
+                { bit: 6,  label: "Вход 7" },
+                { bit: 7,  label: "Вход 8" },
+                { bit: 8,  label: "Вход 9" },
+                { bit: 9,  label: "Вход 10" },
+                { bit: 10,  label: "Вход 11" },
+                { bit: 11,  label: "Вход 12" },
+                { bit: 12,  label: "Вход 13" },
+                { bit: 13,  label: "Вход 14" },
+                { bit: 14,  label: "Вход 15" },
+                { bit: 15,  label: "Вход 16" }
+            ],		
+            27: [
+                { bit: 0,  label: "Кнопка Возврат (БИ)" },
+                { bit: 1,  label: "Кнопка Ввод (БИ)" },
+                { bit: 2,  label: "Кнопка Вниз (БИ)" },
+                { bit: 3,  label: "Кнопка Вверх (БИ)" },
+                { bit: 4,  label: "Кнопка Откл" },
+                { bit: 5,  label: "Кнопка Вкл" },
+                { bit: 6,  label: "Кнопка Сброс" },
+                { bit: 7,  label: "Кнопка Тест ДТ" },
+                { bit: 8,  label: "Кнопка Тест БВР" },
+                { bit: 9,  label: "Кнопка Тест ТНП" },
+                { bit: 10,  label: "Длинное нажатие Возврат (БИ)" }
+            ],			
             115: [
                 { bit: 0,  label: "Защита введена" },
                 { bit: 2,  label: "Фиксация" },
@@ -1682,17 +1890,53 @@ const BIT_REGISTERS = {
             ]
         };
 
+const BIT_REGISTERS_INFO = {
+            28: [
+                { bit: 0,  label: "МТЗ-1 - защита по току" },
+                { bit: 1,  label: "МТЗ-2 - защита по току" },
+                { bit: 2,  label: "МТЗ-3 - защита по току" },
+                { bit: 3,  label: "УМТЗ - защита по току" },
+                { bit: 4,  label: "Тест БКИ - диагностика БВР" },
+                { bit: 5,  label: "Тест ДТ - диагностика ДТ" },
+                { bit: 6,  label: "Тест ТНП - диагностика ТНП" },
+                { bit: 8,  label: "Местная защита 3" },
+                { bit: 9,  label: "Местная защита 2" },
+                { bit: 10,  label: "Местная защита 1" },
+                { bit: 11,  label: "Местная защита 4" },
+                { bit: 12,  label: "БКИ - Утечка по сопротивлению" },
+                { bit: 13,  label: "КА - Авария коммутационного аппарата" },
+                { bit: 14,  label: "СШ - Потеря питания секции шин" },
+                { bit: 15,  label: "Внутренняя ошибка БЗУ" }				
+            ],
+            29: [
+                { bit: 0,  label: "Внешняя защита 1" },
+                { bit: 1,  label: "Внешняя защита 2" },
+                { bit: 2,  label: "Внешняя защита 3" },
+                { bit: 3,  label: "Внешняя защита 4" },
+                { bit: 4,  label: "Защита по минимальному напряжению" },
+                { bit: 5,  label: "Защита по максимальному напряжению" },
+                { bit: 6,  label: "ЗОФ - защита от обрыва фаз" },
+                { bit: 7,  label: "ЗНФ - защита по несимметрии фаз" },
+                { bit: 8,  label: "НЗЗ - направленная земляная защита" },
+                { bit: 9,  label: "ЗМТ - защита по минимальному току" },
+                { bit: 10,  label: "УРО - устройство резервного отключения" },
+                { bit: 11,  label: "Авария кнопки СТОП" },
+                { bit: 12,  label: "КЗ на одном из внешних входов" },
+                { bit: 15,  label: "Режим прямого управления входами/выходами" }					
+            ]
+        };
+
         const tabContent = {
             dashboard: {
 			    title: "Текущие параметры",
 				groups: [
-   				    { title: "Фазные токи", registers: [41, 42, 43, 44, 45, 46, 48, 47, 233] },
+   				    { title: "Фазные токи", registers: [41, 42, 43, 61, 44, 45, 46, 48, 47, 233] },
 					{ title: "Фазные напряжения", registers: [33, 34, 35, 36, 37, 38, 39, 40] },
 					{ title: "Сопротивление изоляции", registers: [49, 50, 51, 52, 53] },
 					{ title: "Потребляемая мощность", registers: [54, 55, 56, 57, 58, 59, 80, 81, 82, 83] },
 					{ title: "Линейное напряжение", registers: [63, 64, 65, 66] },
 					{ title: "Время наработки", registers: [92, 93, 94, 95, 96, 97, 98, 99] },
-					{ title: "Прочие параметры", registers: [32, 60, 61, 62, 70, 71, 72, 73, 74, 4] }
+					{ title: "Прочие параметры", registers: [32, 60, 62, 70, 71, 72, 73, 74, 4] }
 				]
 			},
             protection: {
@@ -1776,6 +2020,68 @@ const EXPORT_IMPORT_REGISTERS = [
     212, 213, 216, 217, 218, 219
 ];
 
+function decodeBits(value, bitInfo) {
+    const messages = [];
+    bitInfo.forEach(({ bit, label }) => {
+        if (value & (1 << bit)) {
+            messages.push(label);
+        }
+    });
+    return messages;
+}
+
+async function checkAlarms() {
+    try {
+        const [r28, r29] = await Promise.all([
+            readRegister(28),
+            readRegister(29)
+        ]);
+
+        const alarms = [];
+
+        if (r28?.ok && r28.value !== 0) {
+            alarms.push(...decodeBits(r28.value, BIT_REGISTERS_INFO[28]));
+        }
+
+        if (r29?.ok && r29.value !== 0) {
+            alarms.push(...decodeBits(r29.value, BIT_REGISTERS_INFO[29]));
+        }
+
+        updateAlarmTicker(alarms);
+
+    } catch (e) {
+        console.error('Ошибка проверки аварий:', e);
+    }
+}
+
+function updateAlarmTicker(alarms) {
+    const ticker = document.getElementById('alarmTicker');
+    const textEl = document.getElementById('alarmText');
+
+    if (!alarms.length) {
+        ticker.style.display = 'none';
+        textEl.textContent = '';
+        lastAlarmText = '';
+        return;
+    }
+
+    const newText = '⚠ ' + alarms.join(' • ');
+
+    // ⛔ НЕ перезапускаем анимацию, если текст не изменился
+    if (newText === lastAlarmText) {
+        return;
+    }
+
+    lastAlarmText = newText;
+    textEl.textContent = newText;
+    ticker.style.display = 'block';
+
+    // ▶ перезапуск анимации ТОЛЬКО при изменении
+    textEl.style.animation = 'none';
+    textEl.offsetHeight; // reflow
+    textEl.style.animation = '';
+}
+
 function showProgressModal(title) {
     document.getElementById('progressTitle').textContent = title;
     document.getElementById('progressFill').style.width = '0%';
@@ -1797,6 +2103,20 @@ function closeProgressModal() {
 // Экспорт
 async function exportRegisters() {
     showProgressModal('Экспорт уставок в JSON');
+
+    let mtzpNumber = 'unknown';
+    try {
+        const r10 = await fetch(`${CONFIG.baseUrl}/api/read?reg=10`);
+        if (r10.ok) {
+            const j10 = await r10.json();
+            if (j10.ok) {
+                mtzpNumber = j10.value;
+            }
+        }
+    } catch (e) {
+        console.error('Ошибка чтения регистра 10:', e);
+    }
+
     const data = {};
     let ok = 0, err = 0;
 
@@ -1830,8 +2150,9 @@ async function exportRegisters() {
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `mtzp_settings_${new Date().toISOString().slice(0,10)}.json`;
+    a.href = url;	
+	const date = new Date().toISOString().slice(0, 10);
+	a.download = `mtzp2_${mtzpNumber}_${date}.json`;	
     a.click();
     URL.revokeObjectURL(url);
 
@@ -1908,8 +2229,8 @@ function triggerImport() {
         const authLevelElement = document.getElementById('authLevel');
         const authTimeElement = document.getElementById('authTime');
 
-        // Функции для работы с авторизацией
-        function getPasswordValue(level) {
+// Функции для работы с авторизацией
+function getPasswordValue(level) {
             switch(parseInt(level)) {
                 case 1: return 300; // Пользователь - 300 секунд
                 case 2: return 600; // Системный - 600 секунд
@@ -1918,7 +2239,7 @@ function triggerImport() {
             }
         }
 
-        function getAuthLevelFromValue(value) {
+function getAuthLevelFromValue(value) {
             if (value === 0) return ACCESS_LEVELS.NONE;
             if (value >= 601 && value <= 900) return ACCESS_LEVELS.ADMIN;
             if (value >= 301 && value <= 600) return ACCESS_LEVELS.SYSTEM;
@@ -1926,7 +2247,7 @@ function triggerImport() {
             return ACCESS_LEVELS.NONE;
         }
 
-        function getTimeLeftFromValue(value) {
+function getTimeLeftFromValue(value) {
             if (value === 0) return 0;
             if (value >= 601 && value <= 900) return value - 600;
             if (value >= 301 && value <= 600) return value - 300;
@@ -1934,14 +2255,14 @@ function triggerImport() {
             return 0;
         }
 
-        function formatTime(seconds) {
+function formatTime(seconds) {
             if (seconds <= 0) return '00:00';
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
-        function updateAuthDisplay() {
+function updateAuthDisplay() {
             const levelName = ACCESS_LEVEL_NAMES[currentAuth.level];
             const levelClass = ACCESS_LEVEL_CLASSES[currentAuth.level];
             
@@ -1955,7 +2276,7 @@ function triggerImport() {
             }
         }
 
-        async function checkAuthStatus() {
+async function checkAuthStatus() {
             try {
                 const response = await fetch(`${CONFIG.baseUrl}/api/read?reg=4`);
                 if (!response.ok) throw new Error('Ошибка сети');
@@ -1983,7 +2304,7 @@ function triggerImport() {
             return false;
         }
 		
-		async function login(password) {
+async function login(password) {
 		    await fetch(`${CONFIG.baseUrl}/api/write?reg=4&val=${password}`, { method: 'POST' });
 
 			await delay(300);
@@ -1996,7 +2317,7 @@ function triggerImport() {
 			}
 		}
 		
-		async function logout() {
+async function logout() {
     		await fetch(`${CONFIG.baseUrl}/api/write?reg=4&val=0`, { method: 'POST' });
 			showLoggedOut();
 		}
@@ -2011,7 +2332,9 @@ async function showAuthorized(value) {
     // Обновляем отображение
     updateAuthDisplay();
     updateUIForAuthLevel();
-    
+	
+    await loadTab(currentTab);
+	
     // Закрываем модальное окно
     closeLoginModal();
     
@@ -2068,15 +2391,33 @@ function togglePassword() {
     }
 }
 
+async function readRegister(reg) {
+    try {
+        const response = await fetch(`${CONFIG.baseUrl}/api/read?reg=${reg}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json(); // { ok, value }
+    } catch (error) {
+        console.error(`Ошибка чтения регистра ${reg}:`, error);
+        return null;
+    }
+}
+
 // Функции для управления командами
 async function sendEnableCommand() {
     try {
-        const response = await fetch(`${CONFIG.baseUrl}/api/write?reg=0&val=10`, { 
-            method: 'POST' 
+        // 1. Отправляем ENABLE
+        await fetch(`${CONFIG.baseUrl}/api/write?reg=0&val=10`, {
+            method: 'POST'
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        return data.ok && data.value === 1010;
+
+        // 2. Пауза
+        await delay(50);
+
+        // 3. Читаем регистр команд
+        const data = await readRegister(0);
+
+        return data?.ok && data.value === 1010;
+
     } catch (error) {
         console.error('Ошибка отправки ENABLE:', error);
         return false;
@@ -2084,37 +2425,45 @@ async function sendEnableCommand() {
 }
 
 async function sendControlCommand(command, commandName) {
-    // Сначала отправляем ENABLE
     showAlert(`Отправка команды ${commandName}...`, 'warning');
-    
+
+    // 1. ENABLE
     const enabled = await sendEnableCommand();
     if (!enabled) {
         showAlert('Ошибка: устройство не готово к приему команд', 'error');
         return;
     }
-    
-    // Пауза 100мс для стабильности
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Отправляем основную команду
+
+    // 2. Пауза для ПЛК
+    await delay(100);
+
     try {
-        const response = await fetch(`${CONFIG.baseUrl}/api/write?reg=0&val=${command}`, { 
-            method: 'POST' 
+        // 3. Отправляем команду
+        await fetch(`${CONFIG.baseUrl}/api/write?reg=0&val=${command}`, {
+            method: 'POST'
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        
-        // Обработка ответов
-        switch(data.value) {
-            case 1101: // Сброс ошибок
+
+        // 4. Читаем регистр после выполнения команды
+        await delay(50);
+        const data = await readRegister(0);
+
+        if (!data?.ok) {
+            showAlert('Ошибка чтения состояния регистра команд', 'error');
+            return;
+        }
+
+        // 5. Обработка результата
+        switch (data.value) {
+            case 1101:
                 showAlert('Сброс ошибок выполнен успешно', 'success');
                 break;
-            case 1201: // Отключение КА
+            case 1201:
                 showAlert('Команда отключения КА выполнена', 'success');
                 break;
-            case 1202: // Включение КА
+            case 1202:
                 showAlert('Команда включения КА выполнена', 'success');
                 break;
+
             case 4010:
                 showAlert('Ошибка: не было запроса ENABLE', 'error');
                 break;
@@ -2127,16 +2476,18 @@ async function sendControlCommand(command, commandName) {
             case 4202:
                 showAlert('Ошибка: не включен режим ПТУ (для включения)', 'error');
                 break;
+
             default:
-                showAlert(`Неизвестный ответ: ${data.value}`, 'warning');
+                showAlert(`Неизвестный код регистра команд: ${data.value}`, 'warning');
         }
-        
-        // Обновляем состояние после команды
+
+        // 6. Обновляем интерфейс
         await checkDeviceConnection();
+        await checkAlarms();
         await refreshTabValues();
-        
+
     } catch (error) {
-        console.error(`Ошибка отправки команды ${commandName}:`, error);
+        console.error(`Ошибка команды ${commandName}:`, error);
         showAlert(`Ошибка сети: ${error.message}`, 'error');
     }
 }
@@ -2154,10 +2505,29 @@ async function handleTurnOn() {
     await sendControlCommand(202, 'Включение КА');
 }
 
+// Кнопки ВКЛ / ВЫКЛ / Сброс — доступны при наличии связи
+function updateControlButtons() {
+    const resetBtn = document.getElementById('btn-reset');
+    const offBtn   = document.getElementById('btn-off');
+    const onBtn    = document.getElementById('btn-on');
+
+    if (!resetBtn || !offBtn || !onBtn) return;
+
+    const enabled = isDeviceConnected;
+
+    resetBtn.disabled = !enabled;
+    offBtn.disabled   = !enabled;
+    onBtn.disabled    = !enabled;
+
+    resetBtn.style.opacity = enabled ? '1' : '0.6';
+    offBtn.style.opacity   = enabled ? '1' : '0.6';
+    onBtn.style.opacity    = enabled ? '1' : '0.6';
+}
+
 // Добавить обработчик для кнопки переключения видимости пароля в init():
 document.getElementById('togglePassword').addEventListener('click', togglePassword);
 
-        function updateUIForAuthLevel() {
+function updateUIForAuthLevel() {
             // Обновляем видимость кнопок
             const loginBtn = document.getElementById('btn-login');
             const logoutBtn = document.getElementById('btn-logout');
@@ -2167,29 +2537,7 @@ document.getElementById('togglePassword').addEventListener('click', togglePasswo
             } else {
                 logoutBtn.style.display = 'none';
             }
-            
-			// Обновление доступности кнопок управления
-const resetBtn = document.getElementById('btn-reset');
-const offBtn = document.getElementById('btn-off');
-const onBtn = document.getElementById('btn-on');
-
-if (resetBtn && offBtn && onBtn) {
-    const isControlEnabled = currentAuth.level >= ACCESS_LEVELS.USER;
-    resetBtn.disabled = !isControlEnabled;
-    offBtn.disabled = !isControlEnabled;
-    onBtn.disabled = !isControlEnabled;
-    
-    if (isControlEnabled) {
-        resetBtn.style.opacity = '1';
-        offBtn.style.opacity = '1';
-        onBtn.style.opacity = '1';
-    } else {
-        resetBtn.style.opacity = '0.6';
-        offBtn.style.opacity = '0.6';
-        onBtn.style.opacity = '0.6';
-    }
-}
-			
+            			
             // Обновляем карточки регистров
             const registerCards = document.querySelectorAll('.register-card');
             registerCards.forEach(card => {
@@ -2211,14 +2559,14 @@ if (resetBtn && offBtn && onBtn) {
             });
         }
 
-        function canEditRegister(regId) {
+function canEditRegister(regId) {
             if (!registerIndex.get(regId)?.editable) return false;
             
             const requiredLevel = ACCESS_REQUIREMENTS[regId] || ACCESS_LEVELS.NONE;
             return currentAuth.level >= requiredLevel;
         }
 
-        function startAuthTimer() {
+function startAuthTimer() {
             if (authTimer) clearInterval(authTimer);
             
             authTimer = setInterval(() => {
@@ -2242,20 +2590,20 @@ if (resetBtn && offBtn && onBtn) {
             }, 1000);
         }
 
-        // Функции для работы с модальными окнами
-        function openLoginModal() {
+// Функции для работы с модальными окнами
+function openLoginModal() {
             document.getElementById('loginPassword').value = '';
             loginModal.classList.add('active');
             setTimeout(() => document.getElementById('loginPassword').focus(), 100);
         }
 
-        function closeLoginModal() {
+function closeLoginModal() {
             loginModal.classList.remove('active');
             document.getElementById('loginPassword').value = '';
         }
 		
-		// === Модифицированный openEditModal ===
-        function openEditModal(regId) {
+// === Модифицированный openEditModal ===
+function openEditModal(regId) {
             if (!canEditRegister(regId)) {
                 const reg = registerIndex.get(regId);
                 const requiredLevel = ACCESS_REQUIREMENTS[regId] || ACCESS_LEVELS.NONE;
@@ -2271,8 +2619,16 @@ if (resetBtn && offBtn && onBtn) {
             const currentVal = valuesCache.get(regId) || 0;
             const isBitRegister = !!BIT_REGISTERS[regId];
 
-            document.getElementById('currentValue').innerHTML = 
-                formatValue(currentVal, reg) + (reg.unit ? ' ' + reg.unit : '');
+            const currentDisplay = BIT_REGISTERS[regId] ? formatBitValueForModal(currentVal, regId) : formatValue(currentVal, reg) + (reg.unit ? ' ' + reg.unit : '');
+			
+			const valueEl = document.getElementById('currentValue');
+			valueEl.innerHTML = currentDisplay;
+			
+			if (BIT_REGISTERS[regId]) {
+			    valueEl.classList.add('bit-heavy');
+			} else {
+			    valueEl.classList.remove('bit-heavy');
+			}
 
             document.getElementById('modalTitle').textContent = reg.name;
 
@@ -2348,7 +2704,7 @@ if (resetBtn && offBtn && onBtn) {
             }
         }
 		
-        function openInfoModal(regId) {
+function openInfoModal(regId) {
             const reg = registerIndex.get(regId);
             if (!reg) return;
             
@@ -2364,59 +2720,96 @@ if (resetBtn && offBtn && onBtn) {
             document.getElementById('infoMax').textContent = reg.max;
             document.getElementById('infoDefault').textContent = reg.default;
             document.getElementById('infoRequiredLevel').textContent = requiredName;
-            document.getElementById('infoValue').textContent = displayValue + (reg.unit ? ' ' + reg.unit : '');
+			
+			const infoDisplay = BIT_REGISTERS[regId] ? formatBitValueForModal(currentVal, regId) : displayValue + (reg.unit ? ' ' + reg.unit : '');
+			const infoValueEl = document.getElementById('infoValue');
+			infoValueEl.innerHTML = infoDisplay;   // ← innerHTML, а не textContent!
+			
+			if (BIT_REGISTERS[regId]) {
+    			infoValueEl.classList.add('bit-heavy');
+			} else {
+    			infoValueEl.classList.remove('bit-heavy');
+			}
             
             infoModal.classList.add('active');
         }
 
-        // Вспомогательные функции для работы со значениями
-        function scaleValue(value, scale) {
+// Вспомогательные функции для работы со значениями
+function scaleValue(value, scale) {
             return value / Math.pow(10, scale);
         }
 
-        function unscaleValue(value, scale) {
+function unscaleValue(value, scale) {
             return Math.round(value * Math.pow(10, scale));
         }
 		
-		// === Модифицированная formatValue ===
-		function formatValue(value, reg) {
-            if (value === undefined || value === null) return '--';
+function formatBitValueForModal(value, regId) {
+    if (!BIT_REGISTERS[regId]) return formatValue(value, registerIndex.get(regId));
 
-            // Специальная обработка битовых регистров управления
-            if (BIT_REGISTERS[reg.id]) {
-                const lines = [];
-                BIT_REGISTERS[reg.id].forEach(def => {
-                    const state = (value & (1 << def.bit)) ? 'ВКЛ' : 'ВЫКЛ';
-                    lines.push(`${def.label}: <strong>${state}</strong>`);
-                });
-                return lines.join('<br>');
-            }
+    const items = [];
+    BIT_REGISTERS[regId].forEach(def => {
+        const isOn = (value & (1 << def.bit)) !== 0;
+        items.push(`
+            <div class="modal-bit-item">
+                <span class="bit-label">${def.label}</span>
+                <span class="bit-state ${isOn ? 'on' : 'off'}">
+                    ${isOn ? 'ВКЛ' : 'ВЫКЛ'}
+                </span>
+            </div>
+        `);
+    });
 
-            const scaled = scaleValue(value, reg.scale);
-            
-            switch(reg.format) {
-                case 'HEX': 
-                    return '0x' + value.toString(16).toUpperCase().padStart(4, '0');
-                case 'OCT': 
-                    return '0o' + value.toString(8).padStart(6, '0');
-                case 'BIN': 
-                    return '0b' + value.toString(2).padStart(16, '0');
-                case 'SDC':
-                case 'REL':
-                    return scaled.toFixed(reg.scale);
-                case 'SWT':
-                    const state = value === 1 ? 'ВКЛ' : 'ВЫКЛ';
-                    const cls = value === 1 ? 'on' : 'off';
-                    return `<span class="state ${cls}">${state}</span>`;
-                default: // DEC
-                    return scaled.toFixed(reg.scale);
-            }
-        }
-
-        // Список регистров, которым нужен новый дизайн
-        const protectionControlRegisters = new Set([115, 122, 126, 131, 136, 141, 149, 154, 159, 164, 171, 172, 179, 185, 195, 199, 205, 210, 213]);
+    return `<div class="modal-bit-list">${items.join('')}</div>`;
+}
 		
-        // Инициализация приложения
+// === Модифицированная formatValue ===
+function formatValue(value, reg) {
+    if (value === undefined || value === null) return '--';
+
+    // ─── Битовые регистры ────────────────────────────────
+    if (BIT_REGISTERS[reg.id]) {
+        const lines = [];
+
+        BIT_REGISTERS[reg.id].forEach(def => {
+            const isOn = (value & (1 << def.bit)) !== 0;
+            const stateClass = isOn ? 'bit-on' : 'bit-off';
+            const stateText  = isOn ? 'ВКЛ' : 'ВЫКЛ';
+
+            lines.push(`
+                <div class="bit-line">
+                    <span class="bit-label">${def.label}:</span>
+                    <span class="${stateClass}">${stateText}</span>
+                </div>
+            `);
+        });
+
+        return `<div class="bit-register">${lines.join('')}</div>`;
+    }
+
+    // ─── Обычные переключатели (SWT) ─────────────────────
+    if (reg.format === 'SWT') {
+        const state = value === 1 ? 'ВКЛ' : 'ВЫКЛ';
+        const cls   = value === 1 ? 'on' : 'off';
+        return `<span class="state ${cls}">${state}</span>`;
+    }
+
+    // ─── Всё остальное (числа, HEX и т.д.) ───────────────
+    const scaled = scaleValue(value, reg.scale);
+
+    switch(reg.format) {
+        case 'HEX':  return '0x' + value.toString(16).toUpperCase().padStart(4, '0');
+        case 'OCT':  return '0o' + value.toString(8).padStart(6, '0');
+        case 'BIN':  return '0b' + value.toString(2).padStart(16, '0');
+        case 'SDC':
+        case 'REL':
+        default:     return scaled.toFixed(reg.scale);
+    }
+}
+
+// Список регистров, которым нужен новый дизайн
+const protectionControlRegisters = new Set([23, 24, 25, 26, 27, 115, 122, 126, 131, 136, 141, 149, 154, 159, 164, 171, 172, 179, 185, 195, 199, 205, 210, 213]);
+		
+// Инициализация приложения
 function init() {
     loadTab('dashboard');
     
@@ -2485,9 +2878,12 @@ refreshTimer = setInterval(() => {
     
      // ЗАПУСК ТАЙМЕРА ПРОВЕРКИ СВЯЗИ КАЖДЫЕ 5 СЕКУНД
     setInterval(checkDeviceConnection, CONFIG.refreshInterval);
+    setInterval(checkAlarms, CONFIG.refreshInterval);
     
     // ПЕРВОНАЧАЛЬНАЯ ПРОВЕРКА СВЯЗИ ПРИ ЗАГРУЗКЕ
     checkDeviceConnection();
+    checkAlarms();
+	updateControlButtons();
     
     // Начальная загрузка
     checkAuthStatus().then(() => {
@@ -2505,7 +2901,7 @@ refreshTimer = setInterval(() => {
     });
 }
 	
-	function parseValue(input, reg) {
+function parseValue(input, reg) {
     const trimmed = input.trim();
     
     switch(reg.format) {
@@ -2536,14 +2932,15 @@ function validateValue(value, reg) {
 }
 
 // Модифицированная createRegisterCard
-        function createRegisterCard(regId) {
+function createRegisterCard(regId) {
             const reg = registerIndex.get(regId);
             if (!reg) return '';
             
             const cachedValue = valuesCache.get(regId);
             const displayValue = cachedValue !== undefined ? formatValue(cachedValue, reg) : '<span class="loading"><div class="spinner"></div></span>';
             const isEditable = reg.editable;
-            
+            const isBitReg = !!BIT_REGISTERS[regId];
+			
             const requiredLevel = ACCESS_REQUIREMENTS[regId] || ACCESS_LEVELS.NONE;
             const hasAccess = currentAuth.level >= requiredLevel;
 
@@ -2567,7 +2964,7 @@ function validateValue(value, reg) {
                         <div class="register-id">#${reg.id}</div>
                     </div>
                     <div class="value-row">
-                        <div class="value-display" id="value-${regId}">
+    					<div class="value-display ${isBitReg ? 'bit-register' : ''}" id="value-${regId}">
                             ${displayValue}
                         </div>
                         ${unitDisplay}
@@ -2590,8 +2987,7 @@ function loadTab(tabId) {
     
     let html = '';
     tab.groups.forEach((group, groupIndex) => {
-        // Делаем первую группу раскрытой по умолчанию
-        const isExpandedByDefault = groupIndex === 0;
+		const isExpandedByDefault = false;
         const displayStyle = isExpandedByDefault ? 'grid' : 'none';
         
         // Сохраняем ID группы для отслеживания
@@ -2669,31 +3065,19 @@ function updateConnectionStatus(isConnected, deviceData, reg12Value) {
     const statusDot = document.querySelector('.status-dot');
     const statusText = statusBadge.querySelector('span');
     
+    isDeviceConnected = isConnected;   // ← обновляем глобальное состояние
+    
     if (isConnected) {
         statusDot.style.background = 'var(--success)';
         statusText.textContent = 'Подключено';
-        
-        // Обновляем индикаторы на основе регистра 12
         updateStatusIndicators(reg12Value);
-        
-        // Обновляем информацию об устройстве, если есть данные
-        if (deviceData) {
-            console.log('Данные устройства:', deviceData);
-            // Можно добавить отображение дополнительной информации
-            // Например, серийный номер или скорость соединения
-        }
     } else {
         statusDot.style.background = 'var(--danger)';
         statusText.textContent = 'Нет связи';
-        
-        // Сбрасываем все индикаторы при потере связи
         resetStatusIndicators();
-        
-        // Также можно показать предупреждение, если связь потеряна
-        if (currentAuth.level > ACCESS_LEVELS.NONE) {
-            showAlert('Потеряно соединение с устройством', 'warning');
-        }
     }
+    
+    updateControlButtons();   // ← обновляем кнопки ВКЛ/ВЫКЛ/Сброс
 }
 
 function updateStatusIndicators(reg12Value) {
@@ -2732,22 +3116,6 @@ function updateStatusIndicators(reg12Value) {
 }
 
 function updateIndicator(indicatorId, isActive) {
-    const indicator = document.getElementById(indicatorId);
-    if (indicator) {
-        if (isActive) {
-            indicator.classList.add('active');
-        } else {
-            indicator.classList.remove('active');
-        }
-    }
-}
-
-function resetStatusIndicators() {
-    // Сбрасываем все индикаторы
-    document.querySelectorAll('.indicator').forEach(indicator => {
-        indicator.classList.remove('active');
-    });
-}function updateIndicator(indicatorId, isActive) {
     const indicator = document.getElementById(indicatorId);
     if (indicator) {
         if (isActive) {
@@ -2863,7 +3231,7 @@ async function updateRegisterValue(regId) {
 
 // === Модифицированный saveEditedValue ===
 // === saveEditedValue (без изменений, работает с input[type="checkbox"]) ===
-        async function saveEditedValue() {
+async function saveEditedValue() {
             if (!currentRegister) return;
             
             const reg = registerIndex.get(currentRegister);
@@ -2922,8 +3290,8 @@ async function updateRegisterValue(regId) {
             }
         }
 		
-		// === Модифицированный closeEditModal (очистка чекбоксов) ===
-		function closeEditModal() {
+// === Модифицированный closeEditModal (очистка чекбоксов) ===
+function closeEditModal() {
             editModal.classList.remove('active');
             currentRegister = null;
             document.getElementById('newValue').value = '';
@@ -2958,7 +3326,7 @@ function showAlert(message, type) {
 }
 
         // Загрузка при полной загрузке DOM
-        document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', init);
 
 // Экспортируем функции для глобального доступа
 window.openEditModal = openEditModal;
