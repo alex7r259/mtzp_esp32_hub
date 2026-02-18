@@ -32,12 +32,43 @@ const char* AP_PASS = "12345678";
 #define DEBUG_SERIAL Serial
 #define DEBUG_ENABLED false
 
+#define ADC_PIN       34
+#define SAMPLES       32
+
+// Коэффициент делителя (220k + 100k) / 100k
+const float DIVIDER_RATIO = 3.2f;
+const float VREF          = 3.3f;     // можно уточнить при калибровке
+
 Preferences preferences;
 uint8_t mtzpAddress = MTZP_ADDR;
 uint32_t mtzpBaudRate = UART_BAUD;
 
 const uint32_t allowedBaudRates[] = {9600, 19200, 38400, 57600, 115200};
 const size_t allowedBaudRatesCount = sizeof(allowedBaudRates) / sizeof(allowedBaudRates[0]);
+
+float readBatteryVoltage() {
+  long sum = 0;
+  for (int i = 0; i < SAMPLES; i++) {
+    sum += analogRead(ADC_PIN);
+    delay(1);
+  }
+  float adc = sum / (float)SAMPLES;
+  float v_adc = (adc / 4095.0f) * VREF;
+  return v_adc * DIVIDER_RATIO;
+}
+
+// Простая, но достаточно точная кривая для большинства 18650
+int voltageToPercent(float v) {
+  if (v >= 4.20) return 100;
+  if (v <= 3.27) return 0;
+
+  // Основные точки (примерно соответствует большинству качественных 18650)
+  if      (v >= 4.06) return map(v, 4.06, 4.20,  85, 100);
+  else if (v >= 3.80) return map(v, 3.80, 4.06,  50,  85);
+  else if (v >= 3.60) return map(v, 3.60, 3.80,  20,  50);
+  else if (v >= 3.42) return map(v, 3.42, 3.60,   5,  20);
+  else                return map(v, 3.27, 3.42,   0,   5);
+}
 
 void debugHex(const char* label, const uint8_t* data, int len) {
   if (!DEBUG_ENABLED) return;
@@ -532,6 +563,15 @@ void handleOptions() {
   server.send(204);
 }
 
+void handleBat() {
+  float voltage = readBatteryVoltage();
+  int percent = voltageToPercent(voltage);
+
+  // Возвращаем чистый JSON с процентом
+  String json = "{\"percent\":" + String(percent) + "}";
+  server.send(200, "application/json", json);
+}
+
 void handleRead() {
   addCorsHeaders();
   if (!server.hasArg("reg")) {
@@ -771,6 +811,9 @@ void setup() {
     DEBUG_SERIAL.printf("Использовано:  %d байт\n", LittleFS.usedBytes());
   }
 
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
+
   // Инициализация UART для RS485
   Serial2.begin(mtzpBaudRate, SERIAL_8N1, RS485_RX, RS485_TX);
   pinMode(RS485_DE, OUTPUT);
@@ -801,6 +844,7 @@ void setup() {
   server.on("/api/write", HTTP_OPTIONS, handleOptions);
   server.on("/api/read_multiple", HTTP_OPTIONS, handleOptions);
   server.on("/api/test", HTTP_OPTIONS, handleOptions);
+  server.on("/bat", HTTP_GET, handleBat);
   server.on("/api/status", HTTP_OPTIONS, handleOptions);
   server.on("/api/config", HTTP_OPTIONS, handleOptions);
   server.on("/api/restart", HTTP_OPTIONS, handleOptions);
