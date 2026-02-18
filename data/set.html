@@ -840,12 +840,13 @@
 				</a>
             </div>
         </div>
-        <div class="header-subtitle">Текущие настройки</div>
+        <div class="header-subtitle">Текущие параметры</div>
         <div class="auth-info">
             <div class="auth-level none" id="deviceAddr">-</div>
             <div class="auth-level none" id="deviceAddrHEX">-</div>
             <div class="auth-time" id="baudRate">-</div>
         </div>
+		<span id="batteryPercent">—</span>%🔋<small> (<span id="batteryVoltage">—</span> В)</small>
     </div>
 
     <div class="main-content">
@@ -1096,6 +1097,65 @@
                     btn.textContent = 'Проверить связь с МТЗП';
                 });
         }
+		
+		// Функция обновления заряда батареи
+function updateBattery() {
+    fetch('/bat')
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка сети');
+            return response.json();
+        })
+        .then(data => {
+            const percent = data.percent || 0;
+            const voltage = data.voltage ? data.voltage.toFixed(2) : '—';
+
+            // Обновляем элементы (выберите те, которые добавили)
+            if (document.getElementById('batteryPercent')) {
+                document.getElementById('batteryPercent').textContent = percent;
+            }
+            if (document.getElementById('batteryVoltage')) {
+                document.getElementById('batteryVoltage').textContent = voltage;
+            }
+            if (document.getElementById('batteryPercentBig')) {
+                document.getElementById('batteryPercentBig').textContent = percent;
+            }
+            if (document.getElementById('batteryStatus')) {
+                let status = '';
+                let color = 'var(--dark-gray)';
+                if (percent >= 80) {
+                    status = 'Отличный';
+                    color = 'var(--success)';
+                } else if (percent >= 50) {
+                    status = 'Нормальный';
+                    color = 'var(--primary)';
+                } else if (percent >= 20) {
+                    status = 'Низкий';
+                    color = 'var(--warning)';
+                } else {
+                    status = 'Критически низкий!';
+                    color = 'var(--danger)';
+                }
+                document.getElementById('batteryStatus').textContent = status;
+                document.getElementById('batteryStatus').style.color = color;
+            }
+        })
+        .catch(err => {
+            console.error('Ошибка получения заряда:', err);
+            if (document.getElementById('batteryPercent')) {
+                document.getElementById('batteryPercent').textContent = '—';
+            }
+            if (document.getElementById('batteryStatus')) {
+                document.getElementById('batteryStatus').textContent = 'Ошибка';
+                document.getElementById('batteryStatus').style.color = 'var(--danger)';
+            }
+        });
+}
+
+// Запускаем обновление сразу и каждые 5 секунд
+window.addEventListener('load', () => {
+    updateBattery();               // сразу при загрузке
+    setInterval(updateBattery, 5000); // каждые 5 сек
+});
     </script>
 </body>
 </html>
