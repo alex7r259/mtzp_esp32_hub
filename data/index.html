@@ -857,7 +857,6 @@
 			line-height: 1.32;
 			text-align: left;
 			color: #333;
-			max-height: 118px;           /* ограничим высоту */
 			overflow-y: auto;
 			padding: 4px 6px;
 			background: rgba(248, 249, 250, 0.6);
@@ -954,7 +953,6 @@
     background: rgba(245, 245, 245, 0.7);
     border-radius: 6px;
     margin: -2px -4px;
-    max-height: 110px;
     overflow-y: auto;
 }
 
@@ -1675,50 +1673,49 @@
 const BIT_REGISTERS = {
 
             23: [
-                { bit: 0,  label: "К1" },
-                { bit: 1,  label: "К2" },
-                { bit: 2,  label: "К3" },
-                { bit: 3,  label: "К4" },
-                { bit: 4,  label: "К5" },
-                { bit: 5,  label: "К6" },
-                { bit: 6,  label: "К7" },
-                { bit: 7,  label: "К8" },
-                { bit: 8,  label: "К9" },
-                { bit: 9,  label: "К10" },
-                { bit: 10,  label: "К11" },
-                { bit: 11,  label: "К12" },
+                { bit: 0,  label: "K1 ВКЛ1" },
+                { bit: 1,  label: "К2 ВКЛ2" },
+                { bit: 2,  label: "К3 ОТКЛ" },
+                { bit: 3,  label: "К4 УРОВ" },
+                { bit: 4,  label: "К5 Uсш" },
+                { bit: 5,  label: "К6 Пуск МТЗ" },
+                { bit: 6,  label: "К7 МТЗ-1" },
+                { bit: 7,  label: "К8 Авария" },
+                { bit: 8,  label: "К9 Авария" },
+                { bit: 9,  label: "К10 Положение" },
+                { bit: 10,  label: "К11 УРОВ" },
+                { bit: 11,  label: "К12 Пуск МТЗ" },
                 { bit: 12,  label: "Включение тестового напряжения БВР" },
                 { bit: 13,  label: "Тест ДТ" },
                 { bit: 14,  label: "Тест ТНП" }
             ],
 			24: [
-                { bit: 3,  label: "Внешний вход 1" },
-                { bit: 2,  label: "Внешний вход 2" },
-                { bit: 1,  label: "Внешний вход 3" },
-                { bit: 0,  label: "Внешний вход 4" }
+                { bit: 3,  label: "ПДУ" },
+                { bit: 2,  label: "Резерв" },
+                { bit: 1,  label: "АГЗ" },
+                { bit: 0,  label: "Внешнее отключение (ИЦ)" }
             ],
 			25: [
-                { bit: 2,  label: "Внешний вход 5" },
-                { bit: 1,  label: "Внешний вход 6" },
-                { bit: 0,  label: "Внешний вход 7" }
+                { bit: 2,  label: "Резерв" },
+                { bit: 1,  label: "ЛЗШ (ИЦ)" },
+                { bit: 0,  label: "Резерв" }
             ],
 			26: [
-                { bit: 0,  label: "Вход 1" },
-                { bit: 1,  label: "Вход 2" },
-                { bit: 2,  label: "Вход 3" },
-                { bit: 3,  label: "Вход 4" },
-                { bit: 4,  label: "Вход 5" },
-                { bit: 5,  label: "Вход 6" },
-                { bit: 6,  label: "Вход 7" },
-                { bit: 7,  label: "Вход 8" },
-                { bit: 8,  label: "Вход 9" },
-                { bit: 9,  label: "Вход 10" },
-                { bit: 10,  label: "Вход 11" },
-                { bit: 11,  label: "Вход 12" },
-                { bit: 12,  label: "Вход 13" },
-                { bit: 13,  label: "Вход 14" },
-                { bit: 14,  label: "Вход 15" },
-                { bit: 15,  label: "Вход 16" }
+                { bit: 0,  label: "РПО" },
+                { bit: 1,  label: "РПВ" },
+                { bit: 2,  label: "Контроль БП (М1)" },
+                { bit: 3,  label: "Дуговая защита (М2)" },
+                { bit: 4,  label: "МТЗ ПД (М3)" },
+                { bit: 5,  label: "Кнопка ОТКЛ" },
+                { bit: 6,  label: "Кнопка ВКЛ" },
+                { bit: 7,  label: "Кнопка Сброс" },
+                { bit: 8,  label: "Кнопка Тест ДТ" },
+                { bit: 9,  label: "Кнопка Тест БВР" },
+                { bit: 10,  label: "Кнопка Тест НЗЗ" },
+                { bit: 11,  label: "ЛЗШ" },
+                { bit: 12,  label: "АВР-1" },
+                { bit: 13,  label: "АВР-2" },
+                { bit: 14,  label: "Резерв" }
             ],		
             27: [
                 { bit: 0,  label: "Кнопка Возврат (БИ)" },
@@ -1732,7 +1729,11 @@ const BIT_REGISTERS = {
                 { bit: 8,  label: "Кнопка Тест БВР" },
                 { bit: 9,  label: "Кнопка Тест ТНП" },
                 { bit: 10,  label: "Длинное нажатие Возврат (БИ)" }
-            ],			
+            ],		
+            40: [
+                { bit: 0,  label: "Индикация линейных напряжений" },
+                { bit: 1,  label: "U вычисляется как мин. по 3 фазам" }
+            ],		
             115: [
                 { bit: 0,  label: "Защита введена" },
                 { bit: 2,  label: "Фиксация" },
@@ -2807,7 +2808,7 @@ function formatValue(value, reg) {
 }
 
 // Список регистров, которым нужен новый дизайн
-const protectionControlRegisters = new Set([23, 24, 25, 26, 27, 115, 122, 126, 131, 136, 141, 149, 154, 159, 164, 171, 172, 179, 185, 195, 199, 205, 210, 213]);
+const protectionControlRegisters = new Set([23, 24, 25, 26, 27, 40, 115, 122, 126, 131, 136, 141, 149, 154, 159, 164, 171, 172, 179, 185, 195, 199, 205, 210, 213]);
 		
 // Инициализация приложения
 function init() {
