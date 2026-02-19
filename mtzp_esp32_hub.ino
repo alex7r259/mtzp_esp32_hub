@@ -30,7 +30,7 @@ const char* AP_PASS = "12345678";
 
 /* ================= ОТЛАДКА ================= */
 #define DEBUG_SERIAL Serial
-#define DEBUG_ENABLED false
+#define DEBUG_ENABLED true
 
 #define ADC_PIN       34
 #define SAMPLES       32
@@ -549,6 +549,80 @@ bool mtzpReadMultiple(uint16_t* regs, uint8_t count, uint16_t* values) {
   return true;
 }
 
+/* ================= НОВАЯ ФУНКЦИЯ: ЧТЕНИЕ УЧАСТКА ПАМЯТИ (команда 0x08) ================= */
+bool mtzpReadMemory(uint32_t startAddr, uint16_t byteCount, uint8_t* outBuffer, uint16_t& bytesRead) {
+    bytesRead = 0;
+    
+    if (byteCount == 0 || byteCount > 256) {
+        debugLog("Недопустимое количество байт");
+        return false;
+    }
+
+    uint8_t req[9] = {0};  // можно 9, без лишнего нулевого байта
+    req[0] = mtzpAddress;
+    req[1] = 0x08;
+    req[2] = (uint8_t)byteCount;
+
+    req[3] = (startAddr >> 24) & 0xFF;
+    req[4] = (startAddr >> 16) & 0xFF;
+    req[5] = (startAddr >>  8) & 0xFF;
+    req[6] = (startAddr      ) & 0xFF;
+
+    uint16_t crc = crc16_mtzp(req, 7);
+    req[7] = crc >> 8;
+    req[8] = crc & 0xFF;
+
+    debugHex("TX 0x08:", req, 9);
+    slipSend(req, 9);
+
+    uint8_t resp[512] = {0};
+    int len = slipRecv(resp, sizeof(resp), 1500);
+
+    if (len < 9) {   // минимум заголовок + хотя бы 1 байт данных + CRC
+        debugLogf("Слишком короткий ответ: %d байт", len);
+        return false;
+    }
+
+    debugHex("RX 0x08:", resp, len);
+
+    if (resp[0] != mtzpAddress || resp[1] != 0x88) {
+        debugLogf("Неверный заголовок: %02X %02X", resp[0], resp[1]);
+        return false;
+    }
+
+    uint16_t gotCrc = (resp[len-2] << 8) | resp[len-1];
+    uint16_t expCrc = crc16_mtzp(resp, len-2);
+    if (gotCrc != expCrc) {
+        debugLogf("CRC ошибка: rx=%04X calc=%04X", gotCrc, expCrc);
+        return false;
+    }
+
+    uint16_t reportedCount = resp[2];
+
+    if (reportedCount != byteCount) {
+        debugLogf("Несоответствие длины данных: запросили %d, устройство сказало %d",
+                  byteCount, reportedCount);
+        // можно return false, если строго; или продолжить с reportedCount
+    }
+
+    // Основное исправление: копируем столько, сколько реально пришло
+    bytesRead = reportedCount;
+
+    // Защита от переполнения буфера вызывающей стороны
+    if (len < 7 + bytesRead + 2) {
+        debugLogf("Ответ короче ожидаемого: len=%d, нужно минимум %d", len, 7 + bytesRead + 2);
+        bytesRead = 0;
+        return false;
+    }
+
+    // Копируем данные
+    memcpy(outBuffer, resp + 7, bytesRead);
+
+    debugHex("COPIED to outBuffer:", outBuffer, bytesRead);
+
+    return true;
+}
+
 WebServer server(80);
 
 /* ================= API ================= */
@@ -774,6 +848,115 @@ void handleRestart() {
   ESP.restart();
 }
 
+void handleJournal() {
+    addCorsHeaders();
+
+    if (!server.hasArg("type")) {
+        server.send(400, "application/json", "{\"ok\":false,\"error\":\"type обязателен\"}");
+        return;
+    }
+
+    String type = server.arg("type");
+    int startIdx = server.hasArg("idx") ? server.arg("idx").toInt() : 1;   // с какой записи начинать (по умолчанию с самой свежей)
+    int count = server.hasArg("count") ? server.arg("count").toInt() : 10; // сколько читать (по умолчанию 10)
+
+    if (startIdx < 1 || count < 1 || count > 50) {  // лимит на разумное количество
+        server.send(400, "application/json", "{\"ok\":false,\"error\":\"неверные idx или count (1..50)\"}");
+        return;
+    }
+
+    // Структура журнала
+    struct Journal {
+        uint32_t baseAddr;
+        uint16_t recSize;
+        uint16_t regTotal;
+        uint16_t regLast;
+        uint16_t maxRecords;
+    } j;
+
+    if      (type == "alarm")     { j = {0x00009C0, 64, 100, 101, 200}; }
+    else if (type == "fault")     { j = {0x003BC0, 64, 102, 103, 100}; }
+    else if (type == "setchange") { j = {0x0054C0, 12, 104, 105, 200}; }
+    else if (type == "comm")      { j = {0x005E20,  8, 106, 107, 100}; }
+    else if (type == "power")     { j = {0x006140,  8, 108, 109, 100}; }
+    else if (type == "diag")      { j = {0x006460,  8, 110, 111, 100}; }
+    else if (type == "powerlog")  { j = {0x006780, 10, 112, 113, 600}; }
+    else {
+        server.send(400, "application/json", "{\"ok\":false,\"error\":\"неизвестный тип\"}");
+        return;
+    }
+
+    // Читаем метаданные один раз
+    uint16_t totalRecords = 0;
+    uint16_t lastPointer  = 0;
+
+    if (!mtzpRead(j.regTotal, totalRecords) || !mtzpRead(j.regLast, lastPointer)) {
+        server.send(500, "application/json", "{\"ok\":false,\"error\":\"ошибка чтения метаданных журнала\"}");
+        return;
+    }
+
+    if (totalRecords == 0) {
+        server.send(200, "application/json", "{\"ok\":true,\"warning\":\"журнал пуст\",\"total\":0}");
+        return;
+    }
+
+    // Ограничиваем count, чтобы не выйти за пределы
+    if (startIdx + count - 1 > totalRecords) {
+        count = totalRecords - startIdx + 1;
+    }
+
+    // Готовим массив для ответа
+    StaticJsonDocument<4096> doc;  // большой буфер — 10 записей по 64 байта + служебное
+    doc["ok"] = true;
+    doc["type"] = type;
+    doc["total_records"] = totalRecords;
+    doc["last_pointer"] = lastPointer;
+    doc["requested_start"] = startIdx;
+    doc["requested_count"] = count;
+
+    JsonArray records = doc.createNestedArray("records");
+
+    // Читаем записи пачкой
+    for (int i = 0; i < count; i++) {
+        int currentIdx = startIdx + i;
+
+        // Позиция в циклическом буфере
+        int32_t pos = (int32_t)lastPointer - (currentIdx - 1);
+        if (pos <= 0) pos += j.maxRecords;
+
+        uint32_t byteOffset = (uint32_t)(pos - 1) * j.recSize;
+        uint32_t readAddr = j.baseAddr + byteOffset;
+
+        uint8_t buf[128] = {0};
+        uint16_t bytesRead = 0;
+
+        if (!mtzpReadMemory(readAddr, j.recSize, buf, bytesRead)) {
+            // Если ошибка чтения одной записи — продолжаем, но отметим
+            JsonObject rec = records.createNestedObject();
+            rec["idx"] = currentIdx;
+            rec["error"] = "чтение не удалось";
+            continue;
+        }
+
+        JsonObject rec = records.createNestedObject();
+        rec["idx"] = currentIdx;
+        rec["address"] = String("0x") + String(readAddr, HEX);
+        rec["bytes_read"] = bytesRead;
+
+        String hexStr;
+        for (uint16_t k = 0; k < j.recSize; k++) {
+            if (k > 0) hexStr += " ";
+            if (buf[k] < 16) hexStr += "0";
+            hexStr += String(buf[k], HEX);
+        }
+        rec["raw_hex"] = hexStr;
+    }
+
+    String json;
+    serializeJson(doc, json);
+    server.send(200, "application/json", json);
+}
+
 /* ================= SETUP / LOOP ================= */
 void setup() {
   DEBUG_SERIAL.begin(115200);
@@ -797,7 +980,7 @@ void setup() {
       delay(200);
     }
   }
-
+  
   if (!LittleFS.begin(true)) {   // true = форматировать при ошибке монтирования
     DEBUG_SERIAL.println("Ошибка монтирования LittleFS!");
     // Можно добавить индикацию ошибки, например мигание LED
@@ -843,6 +1026,7 @@ void setup() {
   server.on("/api/read", HTTP_OPTIONS, handleOptions);
   server.on("/api/write", HTTP_OPTIONS, handleOptions);
   server.on("/api/read_multiple", HTTP_OPTIONS, handleOptions);
+  server.on("/api/journal", HTTP_GET, handleJournal);
   server.on("/api/test", HTTP_OPTIONS, handleOptions);
   server.on("/bat", HTTP_GET, handleBat);
   server.on("/api/status", HTTP_OPTIONS, handleOptions);
@@ -872,6 +1056,15 @@ void setup() {
       }
     } else {
       server.send(404, "text/plain", "set.html not found in LittleFS");
+    }
+  });
+  server.on("/logs", HTTP_GET, []() {
+    if (LittleFS.exists("/logs.html")) {
+        File file = LittleFS.open("/logs.html", "r");
+        server.streamFile(file, "text/html");
+        file.close();
+    } else {
+        server.send(404, "text/plain", "logs.html not found");
     }
   });
 
