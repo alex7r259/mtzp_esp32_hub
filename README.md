@@ -39,7 +39,7 @@ Version: 2.0</sub><br><br>
 
 1. Клонируйте репозиторий:
    ```bash
-   git clone https://github.com/yourusername/mtzp-esp32-hub.git
+   git clone https://github.com/alex7r259/mtzp_esp32_hub.git
    cd mtzp-esp32-hub
 2. Открыть в Arduino IDE:<br>
   - Установите библиотеки через Library Manager: ArduinoJson, LittleFS, Preferences.<br>
